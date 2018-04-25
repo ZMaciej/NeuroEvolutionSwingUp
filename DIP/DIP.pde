@@ -8,9 +8,9 @@ final double L2 = 0.257;                      //lenght of second arm [m]
 final double I2 = 13518.257 / (1000*100*100); //inertia of first arm [kg*m^2]
 final double m2 = 137.952 / 1000;             // mass of second arm[kg]
 final double l2 = 12.041 / 100;               //length of second arm[m]
-final double eta0 = 0;                        //cart viscotic friction constant [kg/s]
-final double eta1 = 0;                        //first joint viscotic friction constant [(kg*m^2)/s]
-final double eta2 = 0;                        //second joint viscotic friction constant [(kg*m^2)/s]
+final double eta0 = 0;                        //cart viscous friction constant [kg/s]
+final double eta1 = 0;                        //first joint viscous friction constant [(kg*m^2)/s]
+final double eta2 = 0;                        //second joint viscous friction constant [(kg*m^2)/s]
 
 /* some constants to simplify the differential equations */
 
@@ -27,7 +27,7 @@ dip pendulum;
 
 void setup()
 {
-  size(600, 200);
+  size(600, 400);
   fill(255);
   stroke(255);
   strokeWeight(5);
@@ -40,7 +40,7 @@ void setup()
 void draw()
 {
   background(0);
-  pendulum.calc(1/30); //solving next position one time per frame
+  pendulum.calc((double)1/60); //solving next position one time per frame
   pendulum.show();
 }
 
@@ -48,7 +48,7 @@ class dip
 {
   final int w = 20;      //width of cart
   final int h = 10;      //height of cart
-  final int scale = 300; //the scale factor for scaling up the real parameter (described in meters) to suitable value of pixels
+  final int scale = 300; //the scale factor for scaling up the real parameter (described in meters) to suitable value in pixels
   rk4 solver;
   public dip(double x1, double x2, double x3, double x4, double x5, double x6) //passing inivtial conditions to solver
   {
@@ -72,16 +72,18 @@ class dip
 
   public void show()
   {
-    float[] temp = new float[2];
+    float[] temp = new float[3];
     pushMatrix();
     translate(width/2, height/2);
-    stroke(255);
-    rect((float)solver.x[0], 0, w, h);
+    stroke(80,80,255);
+    fill(80,80,255);
+    rect(temp[0]=(float)solver.x[0] * scale, 0, w, h);
+    translate(temp[0],0);
     stroke(127, 127, 255);
-    line(0.0, 0.0, temp[0]=(float)(scale*L1*Math.sin(PI - solver.x[1])), temp[1]=(float)(scale*L1*Math.cos(PI - solver.x[1])));
-    translate(temp[0], temp[1]);
-    stroke(0, 0, 255);
-    line(0.0, 0.0, temp[0]=(float)(scale*L2*Math.sin(PI - solver.x[2])), temp[1]=(float)(scale*L2*Math.cos(PI - solver.x[2])));
+    line(0.0, 0.0, temp[1]=(float)(L1*Math.sin(PI - solver.x[1]) * scale), temp[2]=(float)(L1*Math.cos(PI - solver.x[1])) * scale);
+    translate(temp[1], temp[2]);
+    stroke(200, 200, 255);
+    line(0.0, 0.0, (float)(L2*Math.sin(PI - solver.x[2]) * scale), (float)(L2*Math.cos(PI - solver.x[2])) * scale);
     popMatrix();
   }
 }
