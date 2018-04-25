@@ -1,46 +1,89 @@
-final double g = 9.81;   //przyspieszenie ziemskie [m/s^2]
-final double m0 = 0.530168;   //masa wózka [kg]
-final double m1 = 0.18369;   //masa pierwszej części wahadła [kg]
-final double L1 = 0.232039;   //długość pierwszej części wahadła [m]
-final double l1 = 0.14527;  //odległość do środka masy od punktu zaczepu pierwszej części wahadła [m]
-final double I1 = 1655.092 / 1000000;  //[kg*m^2] moment bezwladnosci ramienia pierwszego 
-final double L2 = 0.257;   //długość drugiej części wahadła [m]
-final double I2 = 13518.257 / (1000*100*100); //[kg*m^2] m2 = 137.952 / 1000; %[kg]
-final double m2 = 137.952 / 1000; //[kg]
-final double l2 = 12.041 / 100; //[m]
-final double eta0 = 0;   //współczynnik tarcia pomiędzy wózkiem a podłożem [kg/s]
-final double eta1 = 0;   //współczynnik tarcia przegubu pierwszego [(kg*m^2)/s]
-final double eta2 = 0;   //współczynnik tarcia przegubu drugiego [(kg*m^2)/s]
-/* wspolczynniki */
+final double g = 9.81;                        //gravity constant [m/s^2]
+final double m0 = 0.530168;                   //cart mass [kg]
+final double m1 = 0.18369;                    //mass of first arm [kg]
+final double L1 = 0.232039;                   //lenght of first arm [m]
+final double l1 = 0.14527;                    //distance to center of mass from first arm joint point [m]
+final double I1 = 1655.092 / 1000000;         //inertia of first arm [kg*m^2] 
+final double L2 = 0.257;                      //lenght of second arm [m]
+final double I2 = 13518.257 / (1000*100*100); //inertia of first arm [kg*m^2]
+final double m2 = 137.952 / 1000;             // mass of second arm[kg]
+final double l2 = 12.041 / 100;               //length of second arm[m]
+final double eta0 = 0;                        //cart viscotic friction constant [kg/s]
+final double eta1 = 0;                        //first joint viscotic friction constant [(kg*m^2)/s]
+final double eta2 = 0;                        //second joint viscotic friction constant [(kg*m^2)/s]
+
+/* some constants to simplify the differential equations */
 
 final double A   =  m0+m1+m2;
-final double B1 =  m1*l1 + m2*L1;
-final double B2 =  m2*l2;
+final double B1  =  m1*l1 + m2*L1;
+final double B2  =  m2*l2;
 final double C   =  m1*l1*l1 + m2*L1*L1 + I1;
-final double D1 =  m2*L1*l2;
-final double D2 =  m1*l1*g + m2*L1*g;
+final double D1  =  m2*L1*l2;
+final double D2  =  m1*l1*g + m2*L1*g;
 final double E   =  m2*l2*l2 +I2;
-final double F =  m2*l2*g;
+final double F   =  m2*l2*g;
 
-dip zbyszek;
+dip pendulum;
 
 void setup()
 {
   size(600, 200);
-  frameRate(30);
   fill(255);
   stroke(255);
   strokeWeight(5);
   rectMode(CENTER);
-  
-  zbyszek = new dip(0, PI/2, 0, 0, 0, 0);
+  frameRate(30);
+
+  pendulum = new dip(0, PI/2, 0, 0, 0, 0);
 }
 
 void draw()
 {
   background(0);
-  zbyszek.calc(1/30);
-  zbyszek.show();
+  pendulum.calc(1/30); //solving next position one time per frame
+  pendulum.show();
+}
+
+class dip
+{
+  final int w = 20;      //width of cart
+  final int h = 10;      //height of cart
+  final int scale = 300; //the scale factor for scaling up the real parameter (described in meters) to suitable value of pixels
+  rk4 solver;
+  public dip(double x1, double x2, double x3, double x4, double x5, double x6) //passing inivtial conditions to solver
+  {
+    solver = new rk4(x1, x2, x3, x4, x5, x6);
+  }
+
+
+  public void calc(double h)
+  {
+    solver.execute(h, 0, 0, 0, 0);
+  }
+  public void calc(double h, double u)
+  {
+    solver.execute(h, u, 0, 0, 0);
+  }
+  public void calc(double h, double u, double z0, double z1, double z2)
+  {
+    solver.execute(h, u, z0, z1, z2);
+  }
+
+
+  public void show()
+  {
+    float[] temp = new float[2];
+    pushMatrix();
+    translate(width/2, height/2);
+    stroke(255);
+    rect((float)solver.x[0], 0, w, h);
+    stroke(127, 127, 255);
+    line(0.0, 0.0, temp[0]=(float)(scale*L1*Math.sin(PI - solver.x[1])), temp[1]=(float)(scale*L1*Math.cos(PI - solver.x[1])));
+    translate(temp[0], temp[1]);
+    stroke(0, 0, 255);
+    line(0.0, 0.0, temp[0]=(float)(scale*L2*Math.sin(PI - solver.x[2])), temp[1]=(float)(scale*L2*Math.cos(PI - solver.x[2])));
+    popMatrix();
+  }
 }
 
 class rk4
@@ -116,43 +159,5 @@ class rk4
     {
       x[i] = x[i] + (k[i][0] + 2 * k[i][1] + 2 * k[i][2] + k[i][3])/6;
     }
-  }
-}
-
-class dip
-{
-  final int w = 30;
-  final int h = 10;
-  final int scale = 300;
-  rk4 solver;
-  public dip(double x1, double x2, double x3, double x4, double x5, double x6)
-  {
-    solver = new rk4(x1, x2, x3, x4, x5, x6);
-  }
-  public void calc(double h)
-  {
-    solver.execute(h, 0, 0, 0, 0);
-  }
-  public void calc(double h, double u)
-  {
-    solver.execute(h, u, 0, 0, 0);
-  }
-  public void calc(double h, double u, double z0, double z1, double z2)
-  {
-    solver.execute(h, u, z0, z1, z2);
-  }
-  public void show()
-  {
-    float[] temp = new float[2];
-    pushMatrix();
-    translate(width/2, height/2);
-    stroke(255);
-    rect((float)solver.x[0], 0, w, h);
-    stroke(127,127,255);
-    line(0.0, 0.0, temp[0]=(float)(scale*L1*Math.sin(PI - solver.x[1])), temp[1]=(float)(scale*L1*Math.cos(PI - solver.x[1])));
-    translate(temp[0], temp[1]);
-    stroke(0,0,255);
-    line(0.0, 0.0, temp[0]=(float)(scale*L2*Math.sin(PI - solver.x[2])), temp[1]=(float)(scale*L2*Math.cos(PI - solver.x[2])));
-    popMatrix();
   }
 }
