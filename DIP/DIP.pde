@@ -9,8 +9,8 @@ final double I2 = 13518.257 / (1000*100*100); //inertia of first arm [kg*m^2]
 final double m2 = 137.952 / 1000;             // mass of second arm[kg]
 final double l2 = 12.041 / 100;               //length of second arm[m]
 final double eta0 = 0;                        //cart viscous friction constant [kg/s]                 //recommended value is about 0.01 
-final double eta1 = 0;                        //first joint viscous friction constant [(kg*m^2)/s]    //recommended value is about 0.001
-final double eta2 = 0;                      //second joint viscous friction constant [(kg*m^2)/s]     //recommended value is about 0.001
+final double eta1 = 0.001;                        //first joint viscous friction constant [(kg*m^2)/s]    //recommended value is about 0.001
+final double eta2 = 0.001;                      //second joint viscous friction constant [(kg*m^2)/s]     //recommended value is about 0.001
 
 /* some constants to simplify the differential equations */
 
@@ -24,6 +24,7 @@ final double E   =  m2*l2*l2 +I2;
 final double F   =  m2*l2*g;
 
 dip pendulum;
+double u=0;
 
 void setup()
 {
@@ -42,12 +43,28 @@ void draw()
   background(0);
   int k = 15; //how many iterations by one presentation
   for (int i = 0; i<k; i++) {
-    pendulum.calc((double)1/(k*50)); //solving next position
+    pendulum.calc_neural((double)1/(k*100)); //solving next position
   }
   pendulum.show();
-  pendulum.energy_update();
-  println( pendulum.E[0], pendulum.E[1] );
+  pendulum.energy();
 }
+
+/* steering pendulum on arrows, use dip.calc(h,u); in draw function*/
+
+//void keyPressed() {
+//  if (key == CODED) {
+//    if (keyCode == LEFT) {
+//      u = -2;
+//    } else if (keyCode == RIGHT) {
+//      u = 2;
+//    }
+//  } else {
+//    u = 0;
+//  }
+//}
+//void keyReleased() {
+//  u = 0;
+//}
 
 class dip
 {
@@ -60,10 +77,12 @@ class dip
   double[] E = new double[2];   //all energy in system (initial value [0], value in process [1])
 
   RK4 solver;
+  neuralnetwork brain;
 
   public dip(double x1, double x2, double x3, double x4, double x5, double x6) //passing inivtial conditions to solver
   {
     solver = new RK4(x1, x2, x3, x4, x5, x6);
+    brain = new neuralnetwork(6,10,1);
     Ep[0] =  m2 * g * l2 * Math.cos(solver.x[2]) + (m1 * g * l1 + m2 * g * L1) * Math.cos(solver.x[1]);
     Ek[0] = 0.5* m0* Math.pow(solver.x[3], 2) + 0.5* m1*Math.pow(solver.x[3], 2) + m1*solver.x[3]* solver.x[4] *l1*Math.cos(solver.x[1])+ 0.5* m1*Math.pow(solver.x[4], 2) * Math.pow(l1, 2) + 0.5 *I1* Math.pow(solver.x[4], 2) + 0.5* m2*Math.pow(solver.x[3], 2) + 0.5 *m2*Math.pow(solver.x[4], 2)* Math.pow(L1, 2) + 0.5 *m2*Math.pow(solver.x[5], 2) *Math.pow(l2, 2) + m2 * solver.x[3] * solver.x[4] * L1 * Math.cos(solver.x[1]) + m2 * solver.x[3] * solver.x[5] * l2 * Math.cos(solver.x[2]) + m2 * solver.x[4] * L1 * solver.x[5] * l2 * Math.cos(solver.x[1] - solver.x[2]) + 0.5 * I2 * Math.pow(solver.x[5], 2);
     E[0] = Ep[0] + Ek[0];
@@ -82,11 +101,25 @@ class dip
   {
     solver.execute(h, u, z0, z1, z2);
   }
-  public void energy_update()
+
+  public void calc_neural(double h)
+  {
+    u = brain.think(solver.x)[0]; //not very elegant solution, but it allows to maintain consistency in the neuralnetwork class
+    solver.execute(h, u, 0, 0, 0);
+  }
+
+  private void calculate_energy()
   {
     Ep[1] =  m2 * g * l2 * Math.cos(solver.x[2]) + (m1 * g * l1 + m2 * g * L1) * Math.cos(solver.x[1]);
     Ek[1] = 0.5* m0* Math.pow(solver.x[3], 2) + 0.5* m1*Math.pow(solver.x[3], 2) + m1*solver.x[3]* solver.x[4] *l1*Math.cos(solver.x[1])+ 0.5* m1*Math.pow(solver.x[4], 2) * Math.pow(l1, 2) + 0.5 *I1* Math.pow(solver.x[4], 2) + 0.5* m2*Math.pow(solver.x[3], 2) + 0.5 *m2*Math.pow(solver.x[4], 2)* Math.pow(L1, 2) + 0.5 *m2*Math.pow(solver.x[5], 2) *Math.pow(l2, 2) + m2 * solver.x[3] * solver.x[4] * L1 * Math.cos(solver.x[1]) + m2 * solver.x[3] * solver.x[5] * l2 * Math.cos(solver.x[2]) + m2 * solver.x[4] * L1 * solver.x[5] * l2 * Math.cos(solver.x[1] - solver.x[2]) + 0.5 * I2 * Math.pow(solver.x[5], 2);
     E[1] = Ep[1] + Ek[1];
+  }
+
+  public void energy()
+  {
+    calculate_energy();
+    //In the absence of friction we can find out a solver error (in this case energy should stay the same all the time)
+    println( "Initial Energy:", (float)E[0], "Actual Energy:", (float)E[1] );
   }
 
   public void show()
@@ -107,9 +140,119 @@ class dip
   }
 }
 
+
+/* class of neural network with only one hidden layer available and with ReLU and tanh activation */
+
+class neuralnetwork
+{
+  double[][] weights_ih;
+  double[][] weights_ho;
+  //double[] input;
+  double[] hidden;
+  double[] output;
+  double[] biases_ih;
+  double[] biases_ho;
+  int input_count = 0;
+  int hidden_count = 0;
+  int output_count = 0;
+
+  neuralnetwork(int input_count, int hidden_count, int output_count)
+  {
+    weights_ih = new double[hidden_count][input_count];
+    weights_ho = new double[output_count][hidden_count];
+    //input = new double[input_count];
+    hidden = new double[hidden_count];
+    output = new double[output_count];
+    biases_ih = new double[hidden_count];
+    biases_ho = new double[output_count];
+    this.input_count = input_count;
+    this.hidden_count = hidden_count;
+    this.output_count = output_count;
+    
+    randomize(1, 1); //this values are only for testing right now
+  }
+
+  double[] think(double[] input)
+  {
+    double temp;
+    if (input.length == input_count) {
+      // activate( weights_ih * input + biases_ih )
+      for (int i = 0; i<hidden_count; i++)
+      {
+        temp = 0;
+        for (int j = 0; j<input_count; j++)
+        {
+          temp += input[j] * weights_ih[i][j];
+        }
+        hidden[i] = temp + biases_ih[i];
+      }
+      ReLU(hidden);
+
+      // activate( weights_ho * input + biases_ho )
+      for (int i = 0; i<output_count; i++)
+      {
+        temp = 0;
+        for (int j = 0; j<hidden_count; j++)
+        {
+          temp += hidden[j] * weights_ho[i][j];
+        }
+        output[i] = temp + biases_ho[i];
+      }
+      tanh(output);
+    }
+    return output;
+  }
+
+  void randomize_weights(double weights_range)
+  {
+    for (int i = 0; i < weights_ih.length; i++)
+      for (int j = 0; j < weights_ih[0].length; j++)
+      {
+        weights_ih[i][j] = ((Math.random()*2)-1) * weights_range;
+      }
+
+    for (int i = 0; i < weights_ho.length; i++)
+      for (int j = 0; j < weights_ho[0].length; j++)
+      {
+        weights_ho[i][j] = ((Math.random()*2)-1) * weights_range;
+      }
+  }
+  void randomize_biases(double biases_range)
+  {
+    for (int i = 0; i < biases_ih.length; i++)
+      biases_ih[i] = ((Math.random()*2)-1) * biases_range;
+
+    for (int i = 0; i < biases_ho.length; i++)
+      biases_ho[i] = ((Math.random()*2)-1) * biases_range;
+  }
+  void randomize( double weights_range, double biases_range)
+  {
+    randomize_weights(weights_range);
+    randomize_biases(biases_range);
+  }
+
+  /*ReLU activation*/
+
+  private void ReLU(double[] arr)
+  {
+    for (int i = 0; i < arr.length; i++)
+      if (arr[i]<=0) arr[i]=0;
+  }
+
+
+  /* tanh activation*/
+
+  private void tanh(double[] arr)
+  {
+    for (int i = 0; i < arr.length; i++)
+      arr[i] = Math.tanh(arr[i]);
+  }
+}
+
+
 class RK4
 {
-  public double[] x = new double[6];
+  double[] x = new double[6];
   double[][] k = new double[6][4];
 
   public RK4(double x1, double x2, double x3, double x4, double x5, double x6) //solver initial values
