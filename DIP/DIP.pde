@@ -24,6 +24,7 @@ final double D2  =  m1*l1*g + m2*L1*g;
 final double E   =  m2*l2*l2 +I2;
 final double F   =  m2*l2*g;
 
+
 final int stroke_weight = 5;
 dip pendulum;
 double u=0;
@@ -97,12 +98,12 @@ class dip
 
   public void calc(double h)
   {
-    bound_amendment();
+    bound();
     solver.execute(h, 0, 0, 0, 0);
   }
   public void calc(double h, double u)
   {
-    bound_amendment();
+    bound();
     solver.execute(h, u, 0, 0, 0);
   }
 
@@ -115,14 +116,14 @@ class dip
       x_mod[i] = ((x_mod[i]+PI) % TWO_PI) - PI; //modifying the angle range to -PI to PI
     }
     u = control_constant * brain.think(x_mod)[0]; //not very elegant solution, but it allows to maintain consistency in the neuralnetwork class
-    bound_amendment();
+    bound();
     solver.execute(h, u, 0, 0, 0);
   }
 
   /* bouncing off the edge. It is mainly a visual effect (not real physics effect), but also ensures that the pendulum remains on the screen 
   it works badly when the pendulum is constantly trying to go one way */
 
-  private boolean bound_amendment()
+  private boolean bound()
   {
     if (solver.x[0] > gantry/2) {
       solver.x[3] =  -springiness * solver.x[3];
