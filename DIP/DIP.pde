@@ -9,8 +9,9 @@ final double I2 = 13518.257 / (1000*100*100); //inertia of first arm [kg*m^2]
 final double m2 = 137.952 / 1000;             // mass of second arm[kg]
 final double l2 = 12.041 / 100;               //length of second arm[m]
 final double eta0 = 0;                        //cart viscous friction constant [kg/s]                 //recommended value is about 0.01 
-final double eta1 = 0.001;                        //first joint viscous friction constant [(kg*m^2)/s]    //recommended value is about 0.001
-final double eta2 = 0.001;                      //second joint viscous friction constant [(kg*m^2)/s]     //recommended value is about 0.001
+final double eta1 = 0.001;                    //first joint viscous friction constant [(kg*m^2)/s]    //recommended value is about 0.001
+final double eta2 = 0.001;                    //second joint viscous friction constant [(kg*m^2)/s]     //recommended value is about 0.001
+final double gantry = 1.5;                    //lenght of gantry [m]
 
 /* some constants to simplify the differential equations */
 
@@ -23,6 +24,7 @@ final double D2  =  m1*l1*g + m2*L1*g;
 final double E   =  m2*l2*l2 +I2;
 final double F   =  m2*l2*g;
 
+final int stroke_weight = 5;
 dip pendulum;
 double u=0;
 
@@ -31,11 +33,11 @@ void setup()
   size(600, 400);
   fill(255);
   stroke(255);
-  strokeWeight(5);
+  strokeWeight(stroke_weight);
   rectMode(CENTER);
   frameRate(50);
 
-  pendulum = new dip(0, 0.00001, 0, 0, 0, 0);
+  pendulum = new dip(0, PI, PI, 0, 0, 0, 10);
 }
 
 void draw()
@@ -46,7 +48,7 @@ void draw()
     pendulum.calc_neural((double)1/(k*100)); //solving next position
   }
   pendulum.show();
-  pendulum.energy();
+  //pendulum.energy();
 }
 
 /* steering pendulum on arrows, use dip.calc(h,u); in draw function*/
@@ -71,7 +73,10 @@ class dip
   final int w = 20;      //width of cart
   final int h = 10;      //height of cart
   final int scale = 300; //the scale factor for scaling up the real parameter (described in meters) to suitable value in pixels
+  final double springiness = 0.5; //value in range 0 - 1, it is a springiness of borders at gantry
 
+  boolean out_of_range = false;
+  double control_constant;
   double[] Ep = new double[2];  //potential energy
   double[] Ek = new double[2];  //kinetic energy
   double[] E = new double[2];   //all energy in system (initial value [0], value in process [1])
@@ -79,10 +84,11 @@ class dip
   RK4 solver;
   neuralnetwork brain;
 
-  public dip(double x1, double x2, double x3, double x4, double x5, double x6) //passing inivtial conditions to solver
+  public dip(double x1, double x2, double x3, double x4, double x5, double x6, double control_range) //passing inivtial conditions to solver
   {
     solver = new RK4(x1, x2, x3, x4, x5, x6);
-    brain = new neuralnetwork(6,10,1);
+    brain = new neuralnetwork(6, 10, 1);
+    control_constant = Math.random() * control_range;
     Ep[0] =  m2 * g * l2 * Math.cos(solver.x[2]) + (m1 * g * l1 + m2 * g * L1) * Math.cos(solver.x[1]);
     Ek[0] = 0.5* m0* Math.pow(solver.x[3], 2) + 0.5* m1*Math.pow(solver.x[3], 2) + m1*solver.x[3]* solver.x[4] *l1*Math.cos(solver.x[1])+ 0.5* m1*Math.pow(solver.x[4], 2) * Math.pow(l1, 2) + 0.5 *I1* Math.pow(solver.x[4], 2) + 0.5* m2*Math.pow(solver.x[3], 2) + 0.5 *m2*Math.pow(solver.x[4], 2)* Math.pow(L1, 2) + 0.5 *m2*Math.pow(solver.x[5], 2) *Math.pow(l2, 2) + m2 * solver.x[3] * solver.x[4] * L1 * Math.cos(solver.x[1]) + m2 * solver.x[3] * solver.x[5] * l2 * Math.cos(solver.x[2]) + m2 * solver.x[4] * L1 * solver.x[5] * l2 * Math.cos(solver.x[1] - solver.x[2]) + 0.5 * I2 * Math.pow(solver.x[5], 2);
     E[0] = Ep[0] + Ek[0];
@@ -91,21 +97,44 @@ class dip
 
   public void calc(double h)
   {
+    bound_amendment();
     solver.execute(h, 0, 0, 0, 0);
   }
   public void calc(double h, double u)
   {
+    bound_amendment();
     solver.execute(h, u, 0, 0, 0);
-  }
-  public void calc(double h, double u, double z0, double z1, double z2)
-  {
-    solver.execute(h, u, z0, z1, z2);
   }
 
   public void calc_neural(double h)
   {
-    u = brain.think(solver.x)[0]; //not very elegant solution, but it allows to maintain consistency in the neuralnetwork class
+    double[] x_mod;
+    x_mod = solver.x.clone();
+    for (int i = 1; i<3; i++)
+    {
+      x_mod[i] = ((x_mod[i]+PI) % TWO_PI) - PI; //modifying the angle range to -PI to PI
+    }
+    u = control_constant * brain.think(x_mod)[0]; //not very elegant solution, but it allows to maintain consistency in the neuralnetwork class
+    bound_amendment();
     solver.execute(h, u, 0, 0, 0);
+  }
+
+  /* bouncing off the edge. It is mainly a visual effect (not real physics effect), but also ensures that the pendulum remains on the screen 
+  it works badly when the pendulum is constantly trying to go one way */
+
+  private boolean bound_amendment()
+  {
+    if (solver.x[0] > gantry/2) {
+      solver.x[3] =  -springiness * solver.x[3];
+      solver.x[0] = gantry/2;
+      out_of_range = true;
+      calculate_energy();
+    } else if (solver.x[0] < -gantry/2) {
+      solver.x[3] =  -springiness * solver.x[3];
+      solver.x[0] = -gantry/2;
+      out_of_range = true;
+    }
+    return out_of_range;
   }
 
   private void calculate_energy()
@@ -127,6 +156,9 @@ class dip
     float[] temp = new float[3];
     pushMatrix();
     translate(width/2, height/2);
+    stroke(255);
+    line((float)(scale*gantry/2)+w/2+stroke_weight, 3, (float)(scale*gantry/2)+w/2+stroke_weight, 10);
+    line(-(float)(scale*gantry/2)-w/2-stroke_weight, 3, -(float)(scale*gantry/2)-w/2-stroke_weight, 10);
     stroke(80, 80, 255);
     fill(80, 80, 255);
     rect(temp[0]=(float)solver.x[0] * scale, 0, w, h);
@@ -141,7 +173,8 @@ class dip
 }
 
 
-/* class of neural network with only one hidden layer available and with ReLU and tanh activation */
+/* class of neural network with only one hidden layer available
+ activation function is ReLU and tanh */
 
 class neuralnetwork
 {
@@ -168,7 +201,7 @@ class neuralnetwork
     this.input_count = input_count;
     this.hidden_count = hidden_count;
     this.output_count = output_count;
-    
+
     randomize(1, 1); //this values are only for testing right now
   }
 
