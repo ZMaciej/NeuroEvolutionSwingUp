@@ -24,10 +24,20 @@ final double D2  =  m1*l1*g + m2*L1*g;
 final double E   =  m2*l2*l2 +I2;
 final double F   =  m2*l2*g;
 
-
 final int stroke_weight = 5;
+
+boolean recording = false;
 dip pendulum;
 double u=0;
+
+/*initial values*/
+final double x1 = 0;
+final double x2 = PI;
+final double x3 = PI;
+final double x4 = 0;
+final double x5 = 0;
+final double x6 = 0;
+final double max_force = 10;
 
 void setup()
 {
@@ -38,36 +48,60 @@ void setup()
   rectMode(CENTER);
   frameRate(50);
 
-  pendulum = new dip(0, PI, PI, 0, 0, 0, 10);
+  pendulum = new dip(x1, x2, x3, x4, x5, x6, max_force);
 }
 
 void draw()
 {
   background(0);
-  int k = 15; //how many iterations by one presentation
+  int k = 30; //how many iterations by one presentation
   for (int i = 0; i<k; i++) {
     pendulum.calc_neural((double)1/(k*100)); //solving next position
   }
   pendulum.show();
   //pendulum.energy();
+  if (recording) {
+    saveFrame("capture/DIP####.png");
+    fill(255, 0, 0);
+    stroke(255, 150, 150);
+    ellipse(50, 50, 20, 20);
+  }
 }
 
 /* steering pendulum on arrows, use dip.calc(h,u); in draw function*/
 
-//void keyPressed() {
-//  if (key == CODED) {
-//    if (keyCode == LEFT) {
-//      u = -2;
-//    } else if (keyCode == RIGHT) {
-//      u = 2;
-//    }
-//  } else {
-//    u = 0;
-//  }
-//}
-//void keyReleased() {
-//  u = 0;
-//}
+void keyPressed() {
+  if (key == 'r' || key == 'R') // start/stop recording
+  {
+    recording = !recording;
+  }
+  if (key == 'p' || key == 'P') // play again
+  {
+    pendulum.solver.x[0]=x1;
+    pendulum.solver.x[1]=x2;
+    pendulum.solver.x[2]=x3;
+    pendulum.solver.x[3]=x4;
+    pendulum.solver.x[4]=x5;
+    pendulum.solver.x[5]=x6;
+    pendulum.out_of_range = false;
+  }
+  if (key == 'n' || key == 'N') // new simulation
+  {
+    pendulum = new dip(x1, x2, x3, x4, x5, x6, max_force);
+  }
+  //if (key == CODED) {
+  //  if (keyCode == LEFT) {
+  //    u = -2;
+  //  } else if (keyCode == RIGHT) {
+  //    u = 2; // some ammount of force
+  //  }
+  //} else {
+  //  u = 0;
+  //}
+}
+void keyReleased() {
+  u = 0;
+}
 
 class dip
 {
@@ -120,19 +154,18 @@ class dip
     solver.execute(h, u, 0, 0, 0);
   }
 
-  /* bouncing off the edge. It is mainly a visual effect (not real physics effect), but also ensures that the pendulum remains on the screen 
-  it works badly when the pendulum is constantly trying to go one way */
+  /* bouncing off the edge. It is mainly a visual effect (not real physics effect), but also ensures that the pendulum remains on the screen */
 
   private boolean bound()
   {
+    if (out_of_range) u=0; //when pendulum hits the edge the power cuts off
     if (solver.x[0] > gantry/2) {
-      solver.x[3] =  -springiness * solver.x[3];
       solver.x[0] = gantry/2;
+      solver.x[3] = 0;
       out_of_range = true;
-      calculate_energy();
     } else if (solver.x[0] < -gantry/2) {
-      solver.x[3] =  -springiness * solver.x[3];
       solver.x[0] = -gantry/2;
+      solver.x[3] = 0;
       out_of_range = true;
     }
     return out_of_range;
@@ -157,7 +190,8 @@ class dip
     float[] temp = new float[3];
     pushMatrix();
     translate(width/2, height/2);
-    stroke(255);
+    if (out_of_range) stroke(100);
+    else stroke(255);
     line((float)(scale*gantry/2)+w/2+stroke_weight, 3, (float)(scale*gantry/2)+w/2+stroke_weight, 10);
     line(-(float)(scale*gantry/2)-w/2-stroke_weight, 3, -(float)(scale*gantry/2)-w/2-stroke_weight, 10);
     stroke(80, 80, 255);
