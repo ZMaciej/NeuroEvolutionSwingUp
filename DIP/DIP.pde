@@ -27,7 +27,7 @@ final double F   =  m2*l2*g;
 final int stroke_weight = 5;
 
 boolean recording = false;
-final int dip_count = 50;
+final int dip_count = 70;
 dip[] pendulums = new dip[dip_count];
 double u=0;
 
@@ -66,6 +66,12 @@ void draw()
     pendulums[j].show();
   }
   //pendulum.energy();
+  pushMatrix();
+  translate(width/2, height/2);
+  stroke(255);
+  line((float)(pendulums[0].scale*gantry/2) + pendulums[0].w/2 + stroke_weight, 0, (float)(pendulums[0].scale*gantry/2) + pendulums[0].w/2 + stroke_weight, 10);
+  line(-(float)(pendulums[0].scale*gantry/2) - pendulums[0].w/2 - stroke_weight, 0, -(float)(pendulums[0].scale*gantry/2) - pendulums[0].w/2 - stroke_weight, 10);
+  popMatrix();
   if (recording) {
     saveFrame("capture/DIP####.png");
     fill(255, 0, 0);
@@ -155,13 +161,7 @@ class dip
 
   public void calc_neural(double h)
   {
-    double[] x_mod;
-    x_mod = solver.x.clone();
-    for (int i = 1; i<3; i++)
-    {
-      x_mod[i] = ((x_mod[i]+PI) % TWO_PI) - PI; //modifying the angle range to -PI to PI
-    }
-    u = control_constant * brain.think(x_mod)[0]; //not very elegant solution, but it allows to maintain consistency in the neuralnetwork class
+    u = control_constant * brain.think(solver.x)[0]; //not very elegant solution, but it allows to maintain consistency in the neuralnetwork class
     bound();
     solver.execute(h, u, 0, 0, 0);
   }
@@ -202,18 +202,21 @@ class dip
     float[] temp = new float[3];
     pushMatrix();
     translate(width/2, height/2);
-    if (out_of_range) stroke(100);
-    else stroke(255);
-    line((float)(scale*gantry/2)+w/2+stroke_weight, 0, (float)(scale*gantry/2)+w/2+stroke_weight, 10);
-    line(-(float)(scale*gantry/2)-w/2-stroke_weight, 0, -(float)(scale*gantry/2)-w/2-stroke_weight, 10);
-    stroke(80, 80, 255);
-    fill(80, 80, 255);
+    if (out_of_range) { 
+      stroke(80, 80, 80, 127);
+      fill(80, 80, 80, 127);
+    } else {
+      stroke(80, 80, 255);
+      fill(80, 80, 255);
+    }
     rect(temp[0]=(float)solver.x[0] * scale, 0, w, h);
     translate(temp[0], 0);
-    stroke(127, 127, 255);
+    if (out_of_range) stroke(127, 127, 127, 127);
+    else stroke(127, 127, 255);
     line(0.0, 0.0, temp[1]=(float)(L1*Math.sin(PI - solver.x[1]) * scale), temp[2]=(float)(L1*Math.cos(PI - solver.x[1])) * scale);
     translate(temp[1], temp[2]);
-    stroke(200, 200, 255);
+    if (out_of_range) stroke(200, 200, 200, 127);
+    else stroke(200, 200, 255);
     line(0.0, 0.0, (float)(L2*Math.sin(PI - solver.x[2]) * scale), (float)(L2*Math.cos(PI - solver.x[2])) * scale);
     popMatrix();
   }

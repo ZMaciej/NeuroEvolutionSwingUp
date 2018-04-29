@@ -61,5 +61,10 @@ class RK4
     {
       x[i] = x[i] + (k[i][0] + 2 * k[i][1] + 2 * k[i][2] + k[i][3])/6;
     }
+    
+    for (int i = 1; i<3; i++)
+    {
+      x[i] = ((x[i]+PI) % TWO_PI) - PI; //modifying the angle range to -PI to PI
+    }
   }
 }
