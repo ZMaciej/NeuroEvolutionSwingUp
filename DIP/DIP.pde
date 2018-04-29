@@ -11,7 +11,7 @@ final double l2 = 12.041 / 100;               //length of second arm[m]
 final double eta0 = 0;                        //cart viscous friction constant [kg/s]                 //recommended value is about 0.01 
 final double eta1 = 0.001;                    //first joint viscous friction constant [(kg*m^2)/s]    //recommended value is about 0.001
 final double eta2 = 0.001;                    //second joint viscous friction constant [(kg*m^2)/s]     //recommended value is about 0.001
-final double gantry = 1.5;                    //lenght of gantry [m]
+final double gantry = 3;                    //lenght of gantry [m]
 
 /* some constants to simplify the differential equations */
 
@@ -27,7 +27,8 @@ final double F   =  m2*l2*g;
 final int stroke_weight = 5;
 
 boolean recording = false;
-dip pendulum;
+final int dip_count = 50;
+dip[] pendulums = new dip[dip_count];
 double u=0;
 
 /*initial values*/
@@ -41,24 +42,29 @@ final double max_force = 10;
 
 void setup()
 {
-  size(600, 400);
+  size(1000, 400); //x width = dip.scale*gantry+100  dip.scale=300
   fill(255);
   stroke(255);
   strokeWeight(stroke_weight);
   rectMode(CENTER);
   frameRate(50);
-
-  pendulum = new dip(x1, x2, x3, x4, x5, x6, max_force);
+  for (int i = 0; i < dip_count; i++)
+  {
+    pendulums[i] = new dip(x1, x2, x3, x4, x5, x6, max_force);
+  }
 }
 
 void draw()
 {
   background(0);
   int k = 30; //how many iterations by one presentation
-  for (int i = 0; i<k; i++) {
-    pendulum.calc_neural((double)1/(k*100)); //solving next position
+  for (int j =0; j<dip_count; j++)
+  {
+    for (int i = 0; i<k; i++) {
+      pendulums[j].calc_neural((double)1/(k*100)); //solving next position
+    }
+    pendulums[j].show();
   }
-  pendulum.show();
   //pendulum.energy();
   if (recording) {
     saveFrame("capture/DIP####.png");
@@ -77,17 +83,23 @@ void keyPressed() {
   }
   if (key == 'p' || key == 'P') // play again
   {
-    pendulum.solver.x[0]=x1;
-    pendulum.solver.x[1]=x2;
-    pendulum.solver.x[2]=x3;
-    pendulum.solver.x[3]=x4;
-    pendulum.solver.x[4]=x5;
-    pendulum.solver.x[5]=x6;
-    pendulum.out_of_range = false;
+    for (int i =0; i<dip_count; i++)
+    {
+      pendulums[i].solver.x[0]=x1;
+      pendulums[i].solver.x[1]=x2;
+      pendulums[i].solver.x[2]=x3;
+      pendulums[i].solver.x[3]=x4;
+      pendulums[i].solver.x[4]=x5;
+      pendulums[i].solver.x[5]=x6;
+      pendulums[i].out_of_range = false;
+    }
   }
   if (key == 'n' || key == 'N') // new simulation
   {
-    pendulum = new dip(x1, x2, x3, x4, x5, x6, max_force);
+    for (int i =0; i<dip_count; i++)
+    {
+      pendulums[i] = new dip(x1, x2, x3, x4, x5, x6, max_force);
+    }
   }
   //if (key == CODED) {
   //  if (keyCode == LEFT) {
@@ -192,8 +204,8 @@ class dip
     translate(width/2, height/2);
     if (out_of_range) stroke(100);
     else stroke(255);
-    line((float)(scale*gantry/2)+w/2+stroke_weight, 3, (float)(scale*gantry/2)+w/2+stroke_weight, 10);
-    line(-(float)(scale*gantry/2)-w/2-stroke_weight, 3, -(float)(scale*gantry/2)-w/2-stroke_weight, 10);
+    line((float)(scale*gantry/2)+w/2+stroke_weight, 0, (float)(scale*gantry/2)+w/2+stroke_weight, 10);
+    line(-(float)(scale*gantry/2)-w/2-stroke_weight, 0, -(float)(scale*gantry/2)-w/2-stroke_weight, 10);
     stroke(80, 80, 255);
     fill(80, 80, 255);
     rect(temp[0]=(float)solver.x[0] * scale, 0, w, h);
@@ -204,182 +216,5 @@ class dip
     stroke(200, 200, 255);
     line(0.0, 0.0, (float)(L2*Math.sin(PI - solver.x[2]) * scale), (float)(L2*Math.cos(PI - solver.x[2])) * scale);
     popMatrix();
-  }
-}
-
-
-/* class of neural network with only one hidden layer available
- activation function is ReLU and tanh */
-
-class neuralnetwork
-{
-  double[][] weights_ih;
-  double[][] weights_ho;
-  //double[] input;
-  double[] hidden;
-  double[] output;
-  double[] biases_ih;
-  double[] biases_ho;
-  int input_count = 0;
-  int hidden_count = 0;
-  int output_count = 0;
-
-  neuralnetwork(int input_count, int hidden_count, int output_count)
-  {
-    weights_ih = new double[hidden_count][input_count];
-    weights_ho = new double[output_count][hidden_count];
-    //input = new double[input_count];
-    hidden = new double[hidden_count];
-    output = new double[output_count];
-    biases_ih = new double[hidden_count];
-    biases_ho = new double[output_count];
-    this.input_count = input_count;
-    this.hidden_count = hidden_count;
-    this.output_count = output_count;
-
-    randomize(1, 1); //this values are only for testing right now
-  }
-
-  double[] think(double[] input)
-  {
-    double temp;
-    if (input.length == input_count) {
-      // activate( weights_ih * input + biases_ih )
-      for (int i = 0; i<hidden_count; i++)
-      {
-        temp = 0;
-        for (int j = 0; j<input_count; j++)
-        {
-          temp += input[j] * weights_ih[i][j];
-        }
-        hidden[i] = temp + biases_ih[i];
-      }
-      ReLU(hidden);
-
-      // activate( weights_ho * input + biases_ho )
-      for (int i = 0; i<output_count; i++)
-      {
-        temp = 0;
-        for (int j = 0; j<hidden_count; j++)
-        {
-          temp += hidden[j] * weights_ho[i][j];
-        }
-        output[i] = temp + biases_ho[i];
-      }
-      tanh(output);
-    }
-    return output;
-  }
-
-  void randomize_weights(double weights_range)
-  {
-    for (int i = 0; i < weights_ih.length; i++)
-      for (int j = 0; j < weights_ih[0].length; j++)
-      {
-        weights_ih[i][j] = ((Math.random()*2)-1) * weights_range;
-      }
-
-    for (int i = 0; i < weights_ho.length; i++)
-      for (int j = 0; j < weights_ho[0].length; j++)
-      {
-        weights_ho[i][j] = ((Math.random()*2)-1) * weights_range;
-      }
-  }
-  void randomize_biases(double biases_range)
-  {
-    for (int i = 0; i < biases_ih.length; i++)
-      biases_ih[i] = ((Math.random()*2)-1) * biases_range;
-
-    for (int i = 0; i < biases_ho.length; i++)
-      biases_ho[i] = ((Math.random()*2)-1) * biases_range;
-  }
-  void randomize( double weights_range, double biases_range)
-  {
-    randomize_weights(weights_range);
-    randomize_biases(biases_range);
-  }
-
-  /*ReLU activation*/
-
-  private void ReLU(double[] arr)
-  {
-    for (int i = 0; i < arr.length; i++)
-      if (arr[i]<=0) arr[i]=0;
-  }
-
-
-  /* tanh activation*/
-
-  private void tanh(double[] arr)
-  {
-    for (int i = 0; i < arr.length; i++)
-      arr[i] = Math.tanh(arr[i]);
-  }
-}
-
-
-class RK4
-{
-  double[] x = new double[6];
-  double[][] k = new double[6][4];
-
-  public RK4(double x1, double x2, double x3, double x4, double x5, double x6) //solver initial values
-  {
-    x[0] = x1;
-    x[1] = x2;
-    x[2] = x3;
-    x[3] = x4;
-    x[4] = x5;
-    x[5] = x6;
-  }
-
-  /*
-   indexed functions of DIP dynamics, described as
-   x1'=f1(x,u,z)
-   x2'=f2(x,u,z)
-   x3'=f3(x,u,z)
-   x4'=f4(x,u,z)
-   x5'=f5(x,u,z)
-   x6'=f6(x,u,z)
-   */
-  private double f(int i, double x2, double x3, double x4, double x5, double x6, double u, double z0, double z1, double z2)
-  {
-    switch(i)
-    {
-    case 0: 
-      return x4;
-    case 1: 
-      return x5;
-    case 2: 
-      return x6;
-    case 3: 
-      return ((u + z0 -x4* eta0 + B1 * Math.sin(x2)* Math.pow(x5, 2) + B2 * Math.sin(x3)* Math.pow(x6, 2)) * ( C * E - Math.pow(D1, 2) * Math.pow((Math.cos(x2 - x3)), 2) ) + (z1 - x5* eta1 - (x5 - x6)* eta2 - D1 * Math.sin(x2-x3)* Math.pow(x6, 2) + D2 * Math.sin(x2))* ( B2 * Math.cos(x3)* D1* Math.cos(x2 - x3) - B1 * Math.cos(x2)* E )  + ( z2 -(x6 - x5)* eta2 + D1 * Math.sin(x2 - x3)* Math.pow(x5, 2) + F * Math.sin(x3))* ( B1 * Math.cos(x2)* D1 * Math.cos(x2 - x3) - B2 * Math.cos(x3)* C ) )/ (A * C * E + 2 * B1 * Math.cos(x2)* B2 * Math.cos(x3)* D1* Math.cos(x2 - x3) - Math.pow(B1, 2) * Math.pow((Math.cos(x2)), 2) * E - A * Math.pow(D1, 2) * Math.pow((Math.cos(x2 - x3)), 2) - Math.pow(B2, 2) * Math.pow((Math.cos(x3)), 2) * C);
-    case 4: 
-      return ((u + z0 -x4* eta0 + B1 * Math.sin(x2)* Math.pow(x5, 2) + B2 * Math.sin(x3) * Math.pow(x6, 2)) * ( B2 * Math.cos(x3)* D1 * Math.cos(x2 - x3) - B1 * Math.cos(x2)* E )  + ( z1 -x5* eta1 - (x5 - x6)*eta2 - D1 * Math.sin(x2-x3)* Math.pow(x6, 2) + D2 * Math.sin(x2))* ( A * E - Math.pow(B2, 2)* Math.pow((Math.cos(x3)), 2)) + (z2-(x6 - x5)* eta2 + D1 * Math.sin(x2 - x3)* Math.pow(x5, 2) + F * Math.sin(x3))* ( B1 * Math.cos(x2)* B2 * Math.cos(x3) - A * D1 * Math.cos(x2 - x3))) /  (A * C * E + 2 * B1 * Math.cos(x2)* B2 * Math.cos(x3)* D1* Math.cos(x2 - x3) - Math.pow(B1, 2) * Math.pow((Math.cos(x2)), 2) * E - A * Math.pow(D1, 2) * Math.pow((Math.cos(x2 - x3)), 2) - Math.pow(B2, 2) * Math.pow((Math.cos(x3)), 2) * C);
-    case 5: 
-      return ((u + z0 -x4* eta0 + B1 * Math.sin(x2)* Math.pow(x5, 2) + B2 * Math.sin(x3)* Math.pow(x6, 2)) * ( B1 * Math.cos(x2)* D1 * Math.cos(x2 - x3) - B2 * Math.cos(x3)* C ) + ( z1 -x5* eta1 - (x5 - x6)*eta2 - D1 * Math.sin(x2-x3)* Math.pow(x6, 2) + D2 * Math.sin(x2))* ( B1 * Math.cos(x2)* B2 * Math.cos(x3) - A * D1* Math.cos(x2 - x3)) + ( z2 -(x6 - x5)* eta2 + D1 * Math.sin(x2 - x3)* Math.pow(x5, 2) + F * Math.sin(x3))* ( A * C - Math.pow(B1, 2) * Math.pow((Math.cos(x2)), 2) )) /  (A * C * E + 2 * B1 * Math.cos(x2)* B2 * Math.cos(x3)* D1* Math.cos(x2 - x3) - Math.pow(B1, 2) * Math.pow((Math.cos(x2)), 2) * E - A * Math.pow(D1, 2) * Math.pow((Math.cos(x2 - x3)), 2) - Math.pow(B2, 2) * Math.pow((Math.cos(x3)), 2) * C);
-    }
-    return 0;
-  }
-
-  /*  executing Runge–Kutta 4 algorithm to find next position of pendulum */
-
-  void execute(double h, double u, double z0, double z1, double z2)
-  {
-    int d = 2; //denominator in second and third step of RK4
-    boolean z = false; //adding k/d value in second to fourth step of rk4
-    for (int j = 0; j<4; j++)
-      for (int i = 0; i<6; i++)  //iterating through system of ODE's
-      {
-        if (j>0)      //second step of RK4
-          z = true;
-        if (j>2)      //fourth step of RK4
-          d=1;
-        k[i][j] = h * f(i, x[1] + (z ? (k[1][j-1]/d) : 0), x[2] + (z ? (k[2][j-1]/d) : 0), x[3] + (z ? (k[3][j-1]/d) : 0), x[4] + (z ? (k[4][j-1]/d) : 0), x[5] + (z ? (k[5][j-1]/d) : 0), u, z0, z1, z2); //RK4 main equation, modified to system of ODE's
-      }
-    for (int i = 0; i<6; i++)
-    {
-      x[i] = x[i] + (k[i][0] + 2 * k[i][1] + 2 * k[i][2] + k[i][3])/6;
-    }
   }
 }
