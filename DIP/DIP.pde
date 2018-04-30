@@ -44,6 +44,7 @@ int generation_counter = 1;
 dip[] pendulums = new dip[dip_count];
 dip[] next_generation_pendulums = new dip[dip_count];
 double u=0;
+boolean all_out_of_range;
 
 /* neural network constnts */
 final int input_count = 6;
@@ -89,7 +90,17 @@ void draw()
   text(String.format("TIME: %.3f",(float)actual_generation_time), 40, 45);
   actual_generation_time += h * k;
   
-  if(actual_generation_time >= generation_time)
+  all_out_of_range = true;
+  for(int i = 0; i < dip_count; i++)
+  {
+    if(!pendulums[i].out_of_range)
+    {
+      all_out_of_range = false;
+      break;
+    }  
+  }
+  
+  if(actual_generation_time >= generation_time || all_out_of_range)
   {
     next_generation();
     actual_generation_time = 0;
@@ -229,10 +240,10 @@ class dip
         fitness += h/(abs[1] + abs[2]);
 
       else if ( abs[1] > 0.1 || abs[2] > 0.1 )
-        fitness += h/((abs[1] + abs[2])/2 + abs[0] + h);
+        fitness += h/((abs[1] + abs[2])/2 + abs[0] + abs[3]);
 
       else
-        fitness += h/(abs[0] + abs[3] + abs[4] + abs[5] + h);
+        fitness += 2 * h/(abs[0] + 3*abs[3] + abs[4] + abs[5] + h);
     }
   }
 
