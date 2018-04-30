@@ -74,7 +74,7 @@ double h = (double)1/(k*100); //time step for 50 frame per second and 2 times sl
 void draw()
 {
   background(0);
-  
+
   /* updating the pendulums */
   for (int j =0; j<dip_count; j++)
   {
@@ -86,28 +86,28 @@ void draw()
   textSize(20);
   textFont(font);
   fill(255);
-  text(String.format("GENERATION: %d",generation_counter), 40, 20);
-  text(String.format("TIME: %.3f",(float)actual_generation_time), 40, 45);
+  text(String.format("GENERATION: %d", generation_counter), 40, 20);
+  text(String.format("TIME: %.3f", (float)actual_generation_time), 40, 45);
   actual_generation_time += h * k;
-  
+
   all_out_of_range = true;
-  for(int i = 0; i < dip_count; i++)
+  for (int i = 0; i < dip_count; i++)
   {
-    if(!pendulums[i].out_of_range)
+    if (!pendulums[i].out_of_range)
     {
       all_out_of_range = false;
       break;
-    }  
+    }
   }
-  
-  if(actual_generation_time >= generation_time || all_out_of_range)
+
+  if (actual_generation_time >= generation_time || all_out_of_range)
   {
     next_generation();
     actual_generation_time = 0;
     generation_counter++;
   }
-  
-  
+
+
 
   /* drawing the edges */
   pushMatrix();
@@ -227,28 +227,55 @@ class dip
 
   private void calc_fitness(double h)
   {
+    
+    /* old fitness function */
+    //if (!out_of_range)
+    //{
+    //  double[] abs = new double[6];
+    //  for (int i = 0; i<6; i++)
+    //    abs[i] = Math.abs(solver.x[i]);
+
+    //  /* fitness function */
+    //  if (abs[1] > HALF_PI || abs[2] > HALF_PI)
+    //    fitness += 0;
+    //  else if (abs[1] > QUARTER_PI || abs[2] > QUARTER_PI)
+    //    fitness += h/(abs[1] + abs[2]);
+
+    //  else if ( abs[1] > 0.1 || abs[2] > 0.1 )
+    //    fitness += h/((abs[1] + abs[2])/2 + abs[0] + abs[3]);
+
+    //  else
+    //    fitness += 2 * h/(abs[0] + 3*abs[3] + abs[4] + abs[5] + h);
+    //}
+
+
+    /* new fitness function */
     if (!out_of_range)
     {
       double[] abs = new double[6];
       for (int i = 0; i<6; i++)
         abs[i] = Math.abs(solver.x[i]);
 
-      /* fitness function */
-      if (abs[1] > HALF_PI || abs[2] > HALF_PI)
-        fitness += 0;
-      else if (abs[1] > QUARTER_PI || abs[2] > QUARTER_PI)
-        fitness += h/(abs[1] + abs[2]);
-
-      else if ( abs[1] > 0.1 || abs[2] > 0.1 )
-        fitness += h/((abs[1] + abs[2])/2 + abs[0] + abs[3]);
-
-      else
-        fitness += 2 * h/(abs[0] + 3*abs[3] + abs[4] + abs[5] + h);
+      for (int i=0; i<2; i++)
+      {
+        if (abs[1+i] >= 3*QUARTER_PI)
+          fitness += 0;                              //no reward in this zone
+        else if (abs[1+i] >= HALF_PI)
+          fitness += h * 1/2;                        //half point zone
+        else if (abs[1+i] >= QUARTER_PI)
+          fitness += h * (1 + 1/(abs[4+i] + 1));     //one point zone + speed bonus
+        else if (abs[1+i] >= QUARTER_PI/2)
+          fitness += h * (2 + 2/(abs[4+i] + 1) + 1/(abs[0] + 1));     //two point zone + double speed bonus + zero position bonus
+        else if (abs[1+i] >= QUARTER_PI/4)
+          fitness += h * (4 + 4/(abs[4+i] + 1) + 2/(abs[0] + 1) + 1/(abs[3] + 1));  //four point zone + quad speed bonus + double zero position bonus + cart velocity bonus
+        else
+          fitness += h * (8 + 8/(abs[4+i] + 1) + 4/(abs[0] + 1) + 2/(abs[3] + 1));  //eight point zone + octa speed bonus + quad zero position bonus + double cart velocity bonus
+        }
+      }
     }
-  }
 
-  /* stopping on the edge. It is mainly a visual effect (not real physics effect), but also ensures that the pendulum remains on the screen */
-  private boolean bound()
+    /* stopping on the edge. It is mainly a visual effect (not real physics effect), but also ensures that the pendulum remains on the screen */
+    private boolean bound()
   {
     if (solver.x[0] > gantry/2) {
       solver.x[0] = gantry/2;
