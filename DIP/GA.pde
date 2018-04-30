@@ -1,19 +1,29 @@
 void next_generation()
 {
-  normalize_fitness();
+  int non_zero_count = normalize_fitness();
   double rand;
 
   for (int i = 0; i < dip_count; i++)
   {
-    rand = Math.random();
-    if (rand >= 0.5)
-      pick_and_cross(i); //50% chance of crossing
-      
-    else if (rand >= 0.1)
-      pick_tweak(i);  //40% chance of tweaking
-      
-    else
-      mutatant(i); //10% chance of new random pendulum
+    if (non_zero_count > 4) {
+      rand = Math.random();
+      if (rand >= 0.5)
+        pick_and_cross(i); //50% chance of crossing
+
+      else if (rand >= 0.1)
+        pick_tweak(i);  //40% chance of tweaking
+
+      else
+        mutatant(i); //10% chance of new random pendulum
+    } else if (non_zero_count > 0) {
+      rand = Math.random();
+      if (rand >= 0.5)
+        pick_tweak(i);  //50% chance of tweaking
+      else
+        mutatant(i); //50% chance of new random pendulum
+    } else {
+      mutatant(i);
+    }
   }
 
   for (int i = 0; i < dip_count; i++)
@@ -38,12 +48,12 @@ void pick_tweak(int i)
   next_generation_pendulums[i] = tweak(parent, max_weight * 0.1, max_bias * 0.1, max_force * 0.1);
 }
 
-dip tweak(dip parent, double weight_tweak_range , double bias_tweak_range, double control_constant_tweak_range)
+dip tweak(dip parent, double weight_tweak_range, double bias_tweak_range, double control_constant_tweak_range)
 {
   dip child;
   neuralnetwork brain = new neuralnetwork(input_count, hidden_count, output_count, false); // making a new brain (with no randomization) for a child
   double control_constant;
-  
+
   /* tweaking weights */
   for (int i = 0; i < brain.weights_ih.length; i++)
     for (int j = 0; j < brain.weights_ih[0].length; j++)
@@ -154,15 +164,19 @@ dip cross(dip a, dip b)
   return child;
 }
 
-void normalize_fitness()
+int normalize_fitness()
 {
+  int non_zero = 0;
   double max_fit = 0;
   for (int i =0; i < dip_count; i++)
   {
+    if (pendulums[i].fitness > 0)
+      non_zero++;
     max_fit = pendulums[i].fitness > max_fit ? pendulums[i].fitness : max_fit;
   }
   for (int i =0; i < dip_count; i++)
   {
     pendulums[i].fitness /= max_fit;
   }
+  return non_zero;
 }

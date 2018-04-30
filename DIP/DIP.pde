@@ -40,6 +40,7 @@ boolean recording = false;
 final int dip_count = 70;
 final double generation_time = 5; //time of generation existence [s]
 double actual_generation_time = 0;
+int generation_counter = 1;
 dip[] pendulums = new dip[dip_count];
 dip[] next_generation_pendulums = new dip[dip_count];
 double u=0;
@@ -78,12 +79,22 @@ void draw()
     }
     pendulums[j].show();
   }
+  textSize(20);
+  fill(255);
+  text("GENERATION:", 40, 20);
+  text(generation_counter, 180, 20);
+  text("TIME:", 300, 20);
+  text((float)actual_generation_time, 355, 20);
   actual_generation_time += h * k;
+  
   if(actual_generation_time >= generation_time)
   {
     next_generation();
     actual_generation_time = 0;
+    generation_counter++;
   }
+  
+  
 
   /* drawing the edges */
   pushMatrix();
@@ -98,7 +109,7 @@ void draw()
     saveFrame("capture/DIP####.png");
     fill(255, 0, 0);
     stroke(255, 150, 150);
-    ellipse(50, 50, 20, 20);
+    ellipse(20, 20, 20, 20);
   }
 }
 
@@ -111,6 +122,7 @@ void keyPressed() {
   }
   if (key == 'p' || key == 'P') // play again
   {
+    actual_generation_time = 0;
     for (int i =0; i<dip_count; i++)
     {
       pendulums[i].solver.x[0]=x1;
@@ -126,6 +138,8 @@ void keyPressed() {
   {
     for (int i =0; i<dip_count; i++)
     {
+      actual_generation_time = 0;
+      generation_counter = 1;
       pendulums[i] = new dip(x1, x2, x3, x4, x5, x6);
     }
   }
