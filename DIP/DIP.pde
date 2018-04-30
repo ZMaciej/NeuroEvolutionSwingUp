@@ -24,13 +24,6 @@ final double D2  =  m1*l1*g + m2*L1*g;
 final double E   =  m2*l2*l2 +I2;
 final double F   =  m2*l2*g;
 
-final int stroke_weight = 5;
-
-boolean recording = false;
-final int dip_count = 70;
-dip[] pendulums = new dip[dip_count];
-double u=0;
-
 /*initial values*/
 final double x1 = 0;
 final double x2 = PI;
@@ -39,6 +32,22 @@ final double x4 = 0;
 final double x5 = 0;
 final double x6 = 0;
 final double max_force = 10;
+final double max_weight = 5;
+final double max_bias = PI;
+
+final int stroke_weight = 5;
+boolean recording = false;
+final int dip_count = 70;
+final double generation_time = 5; //time of generation existence [s]
+double actual_generation_time = 0;
+dip[] pendulums = new dip[dip_count];
+dip[] next_generation_pendulums = new dip[dip_count];
+double u=0;
+
+/* neural network constnts */
+final int input_count = 6;
+final int hidden_count = 10;
+final int output_count = 1;
 
 void setup()
 {
@@ -50,28 +59,41 @@ void setup()
   frameRate(50);
   for (int i = 0; i < dip_count; i++)
   {
-    pendulums[i] = new dip(x1, x2, x3, x4, x5, x6, max_force);
+    pendulums[i] = new dip(x1, x2, x3, x4, x5, x6);
   }
 }
+
+int k = 30; //how many iterations by one presentation
+double h = (double)1/(k*100); //time step for 50 frame per second and 2 times slow motion
 
 void draw()
 {
   background(0);
-  int k = 30; //how many iterations by one presentation
+  
+  /* updating the pendulums */
   for (int j =0; j<dip_count; j++)
   {
     for (int i = 0; i<k; i++) {
-      pendulums[j].calc_neural((double)1/(k*100)); //solving next position
+      pendulums[j].calc_neural(h); //solving next position
     }
     pendulums[j].show();
   }
-  //pendulum.energy();
+  actual_generation_time += h * k;
+  if(actual_generation_time >= generation_time)
+  {
+    next_generation();
+    actual_generation_time = 0;
+  }
+
+  /* drawing the edges */
   pushMatrix();
   translate(width/2, height/2);
   stroke(255);
-  line((float)(pendulums[0].scale*gantry/2) + pendulums[0].w/2 + stroke_weight, 0, (float)(pendulums[0].scale*gantry/2) + pendulums[0].w/2 + stroke_weight, 10);
-  line(-(float)(pendulums[0].scale*gantry/2) - pendulums[0].w/2 - stroke_weight, 0, -(float)(pendulums[0].scale*gantry/2) - pendulums[0].w/2 - stroke_weight, 10);
+  line((float)(pendulums[0].scale*gantry/2) + pendulums[0].c_w/2 + stroke_weight, 0, (float)(pendulums[0].scale*gantry/2) + pendulums[0].c_w/2 + stroke_weight, 10);
+  line(-(float)(pendulums[0].scale*gantry/2) - pendulums[0].c_w/2 - stroke_weight, 0, -(float)(pendulums[0].scale*gantry/2) - pendulums[0].c_w/2 - stroke_weight, 10);
   popMatrix();
+
+  /*recording control*/
   if (recording) {
     saveFrame("capture/DIP####.png");
     fill(255, 0, 0);
@@ -104,7 +126,7 @@ void keyPressed() {
   {
     for (int i =0; i<dip_count; i++)
     {
-      pendulums[i] = new dip(x1, x2, x3, x4, x5, x6, max_force);
+      pendulums[i] = new dip(x1, x2, x3, x4, x5, x6);
     }
   }
   //if (key == CODED) {
@@ -123,30 +145,39 @@ void keyReleased() {
 
 class dip
 {
-  final int w = 20;      //width of cart
-  final int h = 10;      //height of cart
+  final int c_w = 20;      //width of cart
+  final int c_h = 10;      //height of cart
   final int scale = 300; //the scale factor for scaling up the real parameter (described in meters) to suitable value in pixels
-  final double springiness = 0.5; //value in range 0 - 1, it is a springiness of borders at gantry
 
   boolean out_of_range = false;
   double control_constant;
   double[] Ep = new double[2];  //potential energy
   double[] Ek = new double[2];  //kinetic energy
   double[] E = new double[2];   //all energy in system (initial value [0], value in process [1])
+  double fitness = 0;
 
   RK4 solver;
   neuralnetwork brain;
 
-  public dip(double x1, double x2, double x3, double x4, double x5, double x6, double control_range) //passing inivtial conditions to solver
+  public dip(double x1, double x2, double x3, double x4, double x5, double x6) //passing inivtial conditions to solver
   {
     solver = new RK4(x1, x2, x3, x4, x5, x6);
-    brain = new neuralnetwork(6, 10, 1);
-    control_constant = Math.random() * control_range;
+    brain = new neuralnetwork(input_count, hidden_count, output_count, true);
+    control_constant = Math.random() * max_force;
     Ep[0] =  m2 * g * l2 * Math.cos(solver.x[2]) + (m1 * g * l1 + m2 * g * L1) * Math.cos(solver.x[1]);
     Ek[0] = 0.5* m0* Math.pow(solver.x[3], 2) + 0.5* m1*Math.pow(solver.x[3], 2) + m1*solver.x[3]* solver.x[4] *l1*Math.cos(solver.x[1])+ 0.5* m1*Math.pow(solver.x[4], 2) * Math.pow(l1, 2) + 0.5 *I1* Math.pow(solver.x[4], 2) + 0.5* m2*Math.pow(solver.x[3], 2) + 0.5 *m2*Math.pow(solver.x[4], 2)* Math.pow(L1, 2) + 0.5 *m2*Math.pow(solver.x[5], 2) *Math.pow(l2, 2) + m2 * solver.x[3] * solver.x[4] * L1 * Math.cos(solver.x[1]) + m2 * solver.x[3] * solver.x[5] * l2 * Math.cos(solver.x[2]) + m2 * solver.x[4] * L1 * solver.x[5] * l2 * Math.cos(solver.x[1] - solver.x[2]) + 0.5 * I2 * Math.pow(solver.x[5], 2);
     E[0] = Ep[0] + Ek[0];
   }
 
+  public dip(double x1, double x2, double x3, double x4, double x5, double x6, double control_constant, neuralnetwork brain) //passing inivtial conditions to solver
+  {
+    solver = new RK4(x1, x2, x3, x4, x5, x6);
+    this.brain = brain;
+    this.control_constant = control_constant;
+    Ep[0] =  m2 * g * l2 * Math.cos(solver.x[2]) + (m1 * g * l1 + m2 * g * L1) * Math.cos(solver.x[1]);
+    Ek[0] = 0.5* m0* Math.pow(solver.x[3], 2) + 0.5* m1*Math.pow(solver.x[3], 2) + m1*solver.x[3]* solver.x[4] *l1*Math.cos(solver.x[1])+ 0.5* m1*Math.pow(solver.x[4], 2) * Math.pow(l1, 2) + 0.5 *I1* Math.pow(solver.x[4], 2) + 0.5* m2*Math.pow(solver.x[3], 2) + 0.5 *m2*Math.pow(solver.x[4], 2)* Math.pow(L1, 2) + 0.5 *m2*Math.pow(solver.x[5], 2) *Math.pow(l2, 2) + m2 * solver.x[3] * solver.x[4] * L1 * Math.cos(solver.x[1]) + m2 * solver.x[3] * solver.x[5] * l2 * Math.cos(solver.x[2]) + m2 * solver.x[4] * L1 * solver.x[5] * l2 * Math.cos(solver.x[1] - solver.x[2]) + 0.5 * I2 * Math.pow(solver.x[5], 2);
+    E[0] = Ep[0] + Ek[0];
+  }
 
   public void calc(double h)
   {
@@ -161,16 +192,37 @@ class dip
 
   public void calc_neural(double h)
   {
-    u = control_constant * brain.think(solver.x)[0]; //not very elegant solution, but it allows to maintain consistency in the neuralnetwork class
+    u = out_of_range ? 0 : control_constant * brain.think(solver.x)[0]; //not very elegant solution, but it allows to maintain consistency in the neuralnetwork class
     bound();
     solver.execute(h, u, 0, 0, 0);
+    calc_fitness(h);
   }
 
-  /* bouncing off the edge. It is mainly a visual effect (not real physics effect), but also ensures that the pendulum remains on the screen */
+  private void calc_fitness(double h)
+  {
+    if (!out_of_range)
+    {
+      double[] abs = new double[6];
+      for (int i = 0; i<6; i++)
+        abs[i] = Math.abs(solver.x[i]);
 
+      /* fitness function */
+      if (abs[1] > HALF_PI || abs[2] > HALF_PI)
+        fitness += 0;
+      else if (abs[1] > QUARTER_PI || abs[2] > QUARTER_PI)
+        fitness += h/(abs[1] + abs[2]);
+
+      else if ( abs[1] > 0.1 || abs[2] > 0.1 )
+        fitness += h/((abs[1] + abs[2])/2 + abs[0] + h);
+
+      else
+        fitness += h/(abs[0] + abs[3] + abs[4] + abs[5] + h);
+    }
+  }
+
+  /* stopping on the edge. It is mainly a visual effect (not real physics effect), but also ensures that the pendulum remains on the screen */
   private boolean bound()
   {
-    if (out_of_range) u=0; //when pendulum hits the edge the power cuts off
     if (solver.x[0] > gantry/2) {
       solver.x[0] = gantry/2;
       solver.x[3] = 0;
@@ -193,7 +245,7 @@ class dip
   public void energy()
   {
     calculate_energy();
-    //In the absence of friction we can find out a solver error (in this case energy should stay the same all the time)
+    //In the absence of friction and control("u") we can find out a solver error (in this case energy should stay the same all the time)
     println( "Initial Energy:", (float)E[0], "Actual Energy:", (float)E[1] );
   }
 
@@ -209,7 +261,7 @@ class dip
       stroke(80, 80, 255);
       fill(80, 80, 255);
     }
-    rect(temp[0]=(float)solver.x[0] * scale, 0, w, h);
+    rect(temp[0]=(float)solver.x[0] * scale, 0, c_w, c_h);
     translate(temp[0], 0);
     if (out_of_range) stroke(127, 127, 127, 127);
     else stroke(127, 127, 255);

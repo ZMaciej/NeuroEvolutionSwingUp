@@ -14,7 +14,7 @@ class neuralnetwork
   int hidden_count = 0;
   int output_count = 0;
 
-  neuralnetwork(int input_count, int hidden_count, int output_count)
+  neuralnetwork(int input_count, int hidden_count, int output_count, boolean randomize)
   {
     weights_ih = new double[hidden_count][input_count];
     weights_ho = new double[output_count][hidden_count];
@@ -27,7 +27,8 @@ class neuralnetwork
     this.hidden_count = hidden_count;
     this.output_count = output_count;
 
-    randomize(1, 1); //this values are only for testing right now
+    if (randomize)
+      randomization(max_weight, max_bias); //this values are only for testing right now
   }
 
   double[] think(double[] input)
@@ -83,7 +84,7 @@ class neuralnetwork
     for (int i = 0; i < biases_ho.length; i++)
       biases_ho[i] = ((Math.random()*2)-1) * biases_range;
   }
-  void randomize( double weights_range, double biases_range)
+  void randomization( double weights_range, double biases_range)
   {
     randomize_weights(weights_range);
     randomize_biases(biases_range);
