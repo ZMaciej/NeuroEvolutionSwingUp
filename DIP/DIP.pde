@@ -11,7 +11,7 @@ final double l2 = 12.041 / 100;               //length of second arm[m]
 final double eta0 = 0;                        //cart viscous friction constant [kg/s]                 //recommended value is about 0.01 
 final double eta1 = 0.001;                    //first joint viscous friction constant [(kg*m^2)/s]    //recommended value is about 0.001
 final double eta2 = 0.001;                    //second joint viscous friction constant [(kg*m^2)/s]     //recommended value is about 0.001
-final double gantry = 3;                    //lenght of gantry [m]
+final double gantry = 1.5;                    //lenght of gantry [m]
 
 /* some constants to simplify the differential equations */
 
@@ -50,14 +50,17 @@ final int input_count = 6;
 final int hidden_count = 10;
 final int output_count = 1;
 
+PFont font;
+
 void setup()
 {
-  size(1000, 400); //x width = dip.scale*gantry+100  dip.scale=300
+  size(600, 400); //x width = dip.scale*gantry+100  dip.scale=300
   fill(255);
   stroke(255);
   strokeWeight(stroke_weight);
   rectMode(CENTER);
   frameRate(50);
+  font = createFont("font.ttf", 20);
   for (int i = 0; i < dip_count; i++)
   {
     pendulums[i] = new dip(x1, x2, x3, x4, x5, x6);
@@ -80,11 +83,10 @@ void draw()
     pendulums[j].show();
   }
   textSize(20);
+  textFont(font);
   fill(255);
-  text("GENERATION:", 40, 20);
-  text(generation_counter, 180, 20);
-  text("TIME:", 300, 20);
-  text((float)actual_generation_time, 355, 20);
+  text(String.format("GENERATION: %d",generation_counter), 40, 20);
+  text(String.format("TIME: %.3f",(float)actual_generation_time), 40, 45);
   actual_generation_time += h * k;
   
   if(actual_generation_time >= generation_time)
@@ -109,7 +111,7 @@ void draw()
     saveFrame("capture/DIP####.png");
     fill(255, 0, 0);
     stroke(255, 150, 150);
-    ellipse(20, 20, 20, 20);
+    ellipse(20, 25, 20, 20);
   }
 }
 
