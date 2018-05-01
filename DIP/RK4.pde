@@ -44,8 +44,11 @@ class RK4
 
   private double f2(int i, double x2, double x3, double x4, double x5, double x6, double u, double z0, double z1, double z2)
   {
-    if (i>2)
+    if (i>2){
       u = -K[0]*x[0] -K[1]*x2 -K[2]*x3 -K[3]*x4 -K[4]*x5 -K[5]*x6;
+      if (u>max_force) u=max_force;
+      if (u<-max_force) u=-max_force;
+    }
     switch(i)
     {
     case 0: 

@@ -36,15 +36,18 @@ void pick_tweak(int i)
   int x;
   boolean picked;
 
-  picked = false;
-  do {
-    x = (int)(Math.random()*dip_count);
-    if (Math.random() <= pendulums[x].fitness)
-    {
-      parent = pendulums[x];
-      picked = true;
-    }
-  } while (!picked);
+  if (Math.random() > 0.01) {
+    picked = false;
+    do {
+      x = (int)(Math.random()*dip_count);
+      if (Math.random() <= pendulums[x].fitness)
+      {
+        parent = pendulums[x];
+        picked = true;
+      }
+    } while (!picked);
+  } else
+    parent = best; // 1% chance of picking "best" to tweak
   next_generation_pendulums[i] = tweak(parent, max_weight * 0.1, max_bias * 0.1, max_force * 0.1);
 }
 
@@ -88,7 +91,8 @@ dip tweak(dip parent, double weight_tweak_range, double bias_tweak_range, double
 
 void mutatant(int i)
 {
-  next_generation_pendulums[i] = new dip(x1, x2, x3, x4, x5, x6);
+  if (Math.random() > 0.01) next_generation_pendulums[i] = new dip(x1, x2, x3, x4, x5, x6);
+  else next_generation_pendulums[i] = best; // 1% chance of picking "best" as a mutant
 }
 
 void pick_and_cross(int i)
@@ -108,15 +112,18 @@ void pick_and_cross(int i)
       picked = true;
     }
   } while (!picked);
-  picked = false;
-  do {
-    b = (int)(Math.random()*dip_count);
-    if (a!=b && (Math.random() <= pendulums[b].fitness))
-    {
-      parent_b = pendulums[b];
-      picked = true;
-    }
-  } while (!picked);
+  if (Math.random() > 0.01) {
+    picked = false;
+    do {
+      b = (int)(Math.random()*dip_count);
+      if (a!=b && (Math.random() <= pendulums[b].fitness))
+      {
+        parent_b = pendulums[b];
+        picked = true;
+      }
+    } while (!picked);
+  } else
+    parent_b = best; // 1% chance of picking "best" as a pair to cross with
   next_generation_pendulums[i] = cross(parent_a, parent_b);
 }
 
@@ -168,15 +175,31 @@ int normalize_fitness()
 {
   int non_zero = 0;
   double max_fit = 0;
+  double min_fit;
   for (int i =0; i < dip_count; i++)
   {
-    if (pendulums[i].fitness > 0)
-      non_zero++;
-    max_fit = pendulums[i].fitness > max_fit ? pendulums[i].fitness : max_fit;
+    if (pendulums[i].fitness > max_fit) {
+      max_fit = pendulums[i].fitness;
+      if (max_fit > best_fit) {
+        best_fit = max_fit;
+        best = pendulums[i];
+      }
+    }
   }
+
+  min_fit = max_fit;
   for (int i =0; i < dip_count; i++)
   {
-    pendulums[i].fitness /= max_fit;
+    min_fit = pendulums[i].fitness < min_fit ? pendulums[i].fitness : min_fit;
   }
+
+  if (max_fit!=0)
+    for (int i =0; i < dip_count; i++)
+    {
+      pendulums[i].fitness -= min_fit;
+      pendulums[i].fitness /= (max_fit - min_fit);
+      if (pendulums[i].fitness > 0)
+        non_zero++;
+    }
   return non_zero;
 }
