@@ -34,6 +34,8 @@ final double x6 = 0;
 final double max_force = 10;
 final double max_weight = 5;
 final double max_bias = PI;
+/* control gain */
+double[] K = {10, -280.44, 338.12, 10.65, -0.0849, 29.1};
 
 final int stroke_weight = 5;
 boolean recording = false;
@@ -74,7 +76,11 @@ double h = (double)1/(k*100); //time step for 50 frame per second and 2 times sl
 void draw()
 {
   background(0);
-
+  textSize(20);
+  textFont(font);
+  fill(255);
+  text(String.format("GENERATION: %d", generation_counter), 40, 20);
+  text(String.format("TIME: %.3f", (float)actual_generation_time), 40, 45);
   /* updating the pendulums */
   for (int j =0; j<dip_count; j++)
   {
@@ -83,11 +89,6 @@ void draw()
     }
     pendulums[j].show();
   }
-  textSize(20);
-  textFont(font);
-  fill(255);
-  text(String.format("GENERATION: %d", generation_counter), 40, 20);
-  text(String.format("TIME: %.3f", (float)actual_generation_time), 40, 45);
   actual_generation_time += h * k;
 
   all_out_of_range = true;
@@ -106,8 +107,6 @@ void draw()
     actual_generation_time = 0;
     generation_counter++;
   }
-
-
 
   /* drawing the edges */
   pushMatrix();
@@ -209,25 +208,30 @@ class dip
   public void calc(double h)
   {
     bound();
-    solver.execute(h, 0, 0, 0, 0);
+    solver.execute(h, 0, 0, 0, 0, false);
   }
   public void calc(double h, double u)
   {
     bound();
-    solver.execute(h, u, 0, 0, 0);
+    solver.execute(h, u, 0, 0, 0, false);
   }
 
   public void calc_neural(double h)
   {
-    u = out_of_range ? 0 : control_constant * brain.think(solver.x)[0]; //not very elegant solution, but it allows to maintain consistency in the neuralnetwork class
-    bound();
-    solver.execute(h, u, 0, 0, 0);
+    if (Math.abs(solver.x[1]) >= QUARTER_PI/4 || Math.abs(solver.x[2]) >= QUARTER_PI/4) {
+      u = out_of_range ? 0 : control_constant * brain.think(solver.x)[0]; //not very elegant solution, but it allows to maintain consistency in the neuralnetwork class
+      bound();
+      solver.execute(h, u, 0, 0, 0, false); // object without stabilisation
+    } else {
+      bound();
+      solver.execute(h, 0, 0, 0, 0, true); // object with upward stabilisation
+    }
     calc_fitness(h);
   }
 
   private void calc_fitness(double h)
   {
-    
+
     /* old fitness function */
     //if (!out_of_range)
     //{
@@ -270,12 +274,12 @@ class dip
           fitness += h * (4 + 4/(abs[4+i] + 1) + 2/(abs[0] + 1) + 1/(abs[3] + 1));  //four point zone + quad speed bonus + double zero position bonus + cart velocity bonus
         else
           fitness += h * (8 + 8/(abs[4+i] + 1) + 4/(abs[0] + 1) + 2/(abs[3] + 1));  //eight point zone + octa speed bonus + quad zero position bonus + double cart velocity bonus
-        }
       }
     }
+  }
 
-    /* stopping on the edge. It is mainly a visual effect (not real physics effect), but also ensures that the pendulum remains on the screen */
-    private boolean bound()
+  /* stopping on the edge. It is mainly a visual effect (not real physics effect), but also ensures that the pendulum remains on the screen */
+  private boolean bound()
   {
     if (solver.x[0] > gantry/2) {
       solver.x[0] = gantry/2;
