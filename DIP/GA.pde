@@ -8,20 +8,27 @@ void next_generation()
     if (non_zero_count > 4) {
       rand = Math.random();
       if (rand >= 0.5)
-        pick_and_cross(i); //50% chance of crossing
+        pick_tweak(i);  //50% chance of tweaking
 
       else if (rand >= 0.1)
-        pick_tweak(i);  //40% chance of tweaking
+        pick_and_cross(i); //40% chance of crossing
+
 
       else
         mutatant(i); //10% chance of new random pendulum
-    } else if (non_zero_count > 0) {
+    }
+
+    /* when max 4 pendulums have non zero fitness value */
+    else if (non_zero_count > 0) {
       rand = Math.random();
-      if (rand >= 0.5)
-        pick_tweak(i);  //50% chance of tweaking
+      if (rand >= 0.7)
+        pick_tweak(i);  //70% chance of tweaking
       else
-        mutatant(i); //50% chance of new random pendulum
-    } else {
+        mutatant(i); //30% chance of new random pendulum
+    }
+
+    /* when all pendulums have 0 fitness value */
+    else {
       mutatant(i);
     }
   }
@@ -61,28 +68,28 @@ dip tweak(dip parent, double weight_tweak_range, double bias_tweak_range, double
   for (int i = 0; i < brain.weights_ih.length; i++)
     for (int j = 0; j < brain.weights_ih[0].length; j++)
     {
-      brain.weights_ih[i][j] = parent.brain.weights_ih[i][j] + ((Math.random()*2)-1) * weight_tweak_range ;
+      brain.weights_ih[i][j] = parent.brain.weights_ih[i][j] + (double)randomGaussian()/3 * weight_tweak_range ;
     }
 
   for (int i = 0; i < brain.weights_ho.length; i++)
     for (int j = 0; j < brain.weights_ho[0].length; j++)
     {
-      brain.weights_ho[i][j] = parent.brain.weights_ho[i][j] + ((Math.random()*2)-1) * weight_tweak_range;
+      brain.weights_ho[i][j] = parent.brain.weights_ho[i][j] + (double)randomGaussian()/3 * weight_tweak_range;
     }
 
   /* tweaking biases */
   for (int i = 0; i < brain.biases_ih.length; i++)
   {
-    brain.biases_ih[i] = parent.brain.biases_ih[i] + ((Math.random()*2)-1) * bias_tweak_range;
+    brain.biases_ih[i] = parent.brain.biases_ih[i] + (double)randomGaussian()/3 * bias_tweak_range;
   }
 
   for (int i = 0; i < brain.biases_ho.length; i++)
   {
-    brain.biases_ho[i] = parent.brain.biases_ho[i] + ((Math.random()*2)-1) * bias_tweak_range;
+    brain.biases_ho[i] = parent.brain.biases_ho[i] + (double)randomGaussian()/3 * bias_tweak_range;
   }
 
   /* tweaking control constant */
-  control_constant = parent.control_constant + ((Math.random()*2)-1) * control_constant_tweak_range;
+  control_constant = parent.control_constant + (double)randomGaussian()/3 * control_constant_tweak_range;
 
   child = new dip(x1, x2, x3, x4, x5, x6, control_constant, brain);
 
@@ -92,7 +99,7 @@ dip tweak(dip parent, double weight_tweak_range, double bias_tweak_range, double
 void mutatant(int i)
 {
   if (Math.random() > 0.01) next_generation_pendulums[i] = new dip(x1, x2, x3, x4, x5, x6);
-  else next_generation_pendulums[i] = best; // 1% chance of picking "best" as a mutant
+  else next_generation_pendulums[i] = new dip(x1, x2, x3, x4, x5, x6, best.control_constant, best.brain); // 1% chance of picking "best" as a mutant
 }
 
 void pick_and_cross(int i)

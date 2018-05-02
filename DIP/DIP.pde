@@ -42,7 +42,7 @@ boolean recording = false;
 final int dip_count = 70;
 double generation_time = 0;
 final double[] generation_times = {2, 3, 5};
-final int[] generation_times_change = {15, 20};
+final int[] generation_times_change = {15, 30};
 /* time of generation existence [s] the time is described as the simulation world time not the real world time 
  generation_times parameter is time
  generation_times_change parameter is the number of generations to which the corresponding time applies
@@ -138,7 +138,9 @@ void draw()
       generation_counter++;
       force_next_generation = false;
     }
-  } else
+  }
+  /* showing best */
+  else
   {
     for (int i = 0; i<k; i++) {    //k - how many iterations by one presentation
       best.calc_neural(h); //solving next position
@@ -209,7 +211,7 @@ void keyPressed() {
     if (!show_best)
     {
       actual_generation_time = 0;
-      generation_counter = 0;
+      generation_counter = 1;
       for (int i = 0; i<dip_count; i++)
       {
         pendulums[i] = new dip(x1, x2, x3, x4, x5, x6);
@@ -337,7 +339,7 @@ class dip
         else if (abs[1+i] >= QUARTER_PI/4)
           fitness += h * (4 + 4/(abs[4+i] + 1) + 2/(abs[0] + 1) + 1/(abs[3] + 1));  //four point zone + quad speed bonus + double zero position bonus + cart velocity bonus
         else
-          fitness += h * (8 + 8/(abs[4+i] + 1) + 4/(abs[0] + 1) + 2/(abs[3] + 1));  //eight point zone + octa speed bonus + quad zero position bonus + double cart velocity bonus
+          fitness += h * (8 + 8/(4*abs[4+i] + 1) + 4/(abs[0] + 1) + 2/(4*abs[3] + 1));  //eight point zone + octa speed bonus + quad zero position bonus + double cart velocity bonus
       }
     }
   }
