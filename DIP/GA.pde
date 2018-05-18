@@ -46,7 +46,7 @@ void pick_tweak(int i)
   if (Math.random() > 0.01) {
     picked = false;
     do {
-      x = (int)(Math.random()*dip_count);
+      x = (int)(Math.random()*dip_count); //i can do it like this because Math.random() will never return value = 1, so i will never refer to pendulums[dip_count]
       if (Math.random() <= pendulums[x].fitness)
       {
         parent = pendulums[x];
@@ -56,6 +56,44 @@ void pick_tweak(int i)
   } else
     parent = best; // 1% chance of picking "best" to tweak
   next_generation_pendulums[i] = tweak(parent, max_weight * 0.1, max_bias * 0.1, max_force * 0.1);
+}
+
+void pick_and_cross(int i)
+{
+  dip parent_a = null;
+  int a;
+  dip parent_b = null;
+  int b;
+  boolean picked;
+
+  picked = false;
+  do {
+    a = (int)(Math.random()*dip_count);
+    if (Math.random() <= pendulums[a].fitness)
+    {
+      parent_a = pendulums[a];
+      picked = true;
+    }
+  } while (!picked);
+  if (Math.random() > 0.01) {
+    picked = false;
+    do {
+      b = (int)(Math.random()*dip_count);
+      if (a!=b && (Math.random() <= pendulums[b].fitness))
+      {
+        parent_b = pendulums[b];
+        picked = true;
+      }
+    } while (!picked);
+  } else
+    parent_b = best; // 1% chance of picking "best" as a pair to cross with
+  next_generation_pendulums[i] = cross(parent_a, parent_b);
+}
+
+void mutatant(int i)
+{
+  if (Math.random() > 0.01) next_generation_pendulums[i] = new dip(x1, x2, x3, x4, x5, x6);
+  else next_generation_pendulums[i] = new dip(x1, x2, x3, x4, x5, x6, best.control_constant, best.brain); // 1% chance of picking "best" as a mutant
 }
 
 dip tweak(dip parent, double weight_tweak_range, double bias_tweak_range, double control_constant_tweak_range)
@@ -94,44 +132,6 @@ dip tweak(dip parent, double weight_tweak_range, double bias_tweak_range, double
   child = new dip(x1, x2, x3, x4, x5, x6, control_constant, brain);
 
   return child;
-}
-
-void mutatant(int i)
-{
-  if (Math.random() > 0.01) next_generation_pendulums[i] = new dip(x1, x2, x3, x4, x5, x6);
-  else next_generation_pendulums[i] = new dip(x1, x2, x3, x4, x5, x6, best.control_constant, best.brain); // 1% chance of picking "best" as a mutant
-}
-
-void pick_and_cross(int i)
-{
-  dip parent_a = null;
-  int a;
-  dip parent_b = null;
-  int b;
-  boolean picked;
-
-  picked = false;
-  do {
-    a = (int)(Math.random()*dip_count);
-    if (Math.random() <= pendulums[a].fitness)
-    {
-      parent_a = pendulums[a];
-      picked = true;
-    }
-  } while (!picked);
-  if (Math.random() > 0.01) {
-    picked = false;
-    do {
-      b = (int)(Math.random()*dip_count);
-      if (a!=b && (Math.random() <= pendulums[b].fitness))
-      {
-        parent_b = pendulums[b];
-        picked = true;
-      }
-    } while (!picked);
-  } else
-    parent_b = best; // 1% chance of picking "best" as a pair to cross with
-  next_generation_pendulums[i] = cross(parent_a, parent_b);
 }
 
 dip cross(dip a, dip b)

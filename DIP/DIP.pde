@@ -3,12 +3,12 @@ final double m0 = 0.530168;                   //cart mass [kg]
 final double m1 = 0.18669;                    //mass of first arm [kg]
 final double L1 = 0.232039;                   //lenght of first arm [m]
 final double l1 = 0.15927;                    //distance to center of mass from first arm joint point [m]
-final double I1 = 14675.631 / (1000*100*100);         //inertia of first arm [kg*m^2] 
+final double I1 = 14675.631/(1000*100*100);   //inertia of first arm [kg*m^2] 
 final double L2 = 0.260;                      //lenght of second arm [m]
-final double I2 = 13518.257 / (1000*100*100); //inertia of first arm [kg*m^2]
+final double I2 = 13518.257/(1000*100*100);   //inertia of second arm [kg*m^2]
 final double m2 = 137.952 / 1000;             // mass of second arm[kg]
 final double l2 = 12.041 / 100;               //length of second arm[m]
-final double eta0 = 0.01;                        //cart viscous friction constant [kg/s]                 //recommended value is about 0.01 
+final double eta0 = 0.01;                     //cart viscous friction constant [kg/s]                 //recommended value is about 0.01 
 final double eta1 = 0.001;                    //first joint viscous friction constant [(kg*m^2)/s]    //recommended value is about 0.001
 final double eta2 = 0.001;                    //second joint viscous friction constant [(kg*m^2)/s]     //recommended value is about 0.001
 final double gantry = 1.0;                    //lenght of gantry [m]
@@ -34,12 +34,12 @@ final double x6 = 0;
 final double max_force = 15;
 final double max_weight = 5;
 final double max_bias = PI;
-/* control gain */
+/* control gains */
 double[] K = {10, -259.7565, 309.8422, 8.3819, -0.7261, 27.0203};
 
 final int stroke_weight = 5;
 boolean recording = false;
-final int dip_count = 70;
+final int dip_count = 70; //how many pendulums in one generation
 double generation_time = 0;
 final double[] generation_times = {2, 3, 5};
 final int[] generation_times_change = {15, 30};
@@ -65,12 +65,13 @@ boolean all_out_of_range;
 boolean force_next_generation = false;
 boolean show_best = false;
 
-/* neural network constnts */
-final int input_count = 6;
-final int hidden_count = 10;
-final int output_count = 1;
+/* neural network constants */
+final int input_count = 6; //6 states of pendulum
+final int hidden_count = 10;  //some arbitrary value
+final int output_count = 1; //one control force applied to cart
 
 PFont font;
+
 
 void setup()
 {

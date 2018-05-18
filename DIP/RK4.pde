@@ -22,6 +22,8 @@ class RK4
    x5'=f5(x,u,z)
    x6'=f6(x,u,z)
    */
+
+  /* ODE's of uncontroled system */
   private double f1(int i, double x2, double x3, double x4, double x5, double x6, double u, double z0, double z1, double z2)
   {
     switch(i)
@@ -42,9 +44,10 @@ class RK4
     return 0;
   }
 
+  /* ODE's of controled system */
   private double f2(int i, double x2, double x3, double x4, double x5, double x6, double u, double z0, double z1, double z2)
   {
-    if (i>2){
+    if (i>2) {
       u = -K[0]*x[0] -K[1]*x2 -K[2]*x3 -K[3]*x4 -K[4]*x5 -K[5]*x6;
       if (u>max_force) u=max_force;
       if (u<-max_force) u=-max_force;
@@ -71,9 +74,9 @@ class RK4
 
   void execute(double h, double u, double z0, double z1, double z2, boolean controled_object)
   {
-    int d = 2; //denominator in second and third step of RK4
-    boolean z = false; //adding k/d value in second to fourth step of rk4
-    for (int j = 0; j<4; j++)
+    int d = 2;                   //denominator in second and third step of RK4
+    boolean z = false;           //adding k/d value in second to fourth step of rk4
+    for (int j = 0; j<4; j++)    //four steps of RK4 solver
       for (int i = 0; i<6; i++)  //iterating through system of ODE's
       {
         if (j>0)      //second step of RK4
@@ -85,14 +88,17 @@ class RK4
         else
           k[i][j] = h * f2(i, x[1] + (z ? (k[1][j-1]/d) : 0), x[2] + (z ? (k[2][j-1]/d) : 0), x[3] + (z ? (k[3][j-1]/d) : 0), x[4] + (z ? (k[4][j-1]/d) : 0), x[5] + (z ? (k[5][j-1]/d) : 0), u, z0, z1, z2); //RK4 main equation, modified to system of ODE's
       }
+
+    /* updating next position of pendulum */
     for (int i = 0; i<6; i++)
     {
       x[i] = x[i] + (k[i][0] + 2 * k[i][1] + 2 * k[i][2] + k[i][3])/6;
     }
 
+    /* modifying the angle range to -PI to PI */
     for (int i = 1; i<3; i++)
     {
-      x[i] = ((x[i]+PI) % TWO_PI) - PI; //modifying the angle range to -PI to PI
+      x[i] = ((x[i]+PI) % TWO_PI) - PI;
     }
   }
 }

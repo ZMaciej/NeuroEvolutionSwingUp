@@ -1,5 +1,5 @@
 /* class of neural network with only one hidden layer available
- activation function is ReLU and tanh */
+ activation function is ReLU on hidden and tanh on output */
 
 class neuralnetwork
 {
@@ -47,7 +47,7 @@ class neuralnetwork
       }
       ReLU(hidden);
 
-      // activate( weights_ho * input + biases_ho )
+      // activate( weights_ho * (input + biases_ho) )
       for (int i = 0; i<output_count; i++)
       {
         temp = 0;
@@ -76,6 +76,7 @@ class neuralnetwork
         weights_ho[i][j] = ((Math.random()*2)-1) * weights_range;
       }
   }
+  
   void randomize_biases(double biases_range)
   {
     for (int i = 0; i < biases_ih.length; i++)
