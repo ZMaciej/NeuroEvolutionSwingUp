@@ -8,3 +8,7 @@
 Point are scored as described below:
 
 <img src=/img/angle_points.jpg alt="IMAGE ALT TEXT HERE" width="500" border="10" />
+
+Video presentation:
+
+[![SwingUp](http://img.youtube.com/vi/oSD7uSI1dF4/0.jpg)](http://www.youtube.com/watch?v=oSD7uSI1dF4 "SwingUp")
