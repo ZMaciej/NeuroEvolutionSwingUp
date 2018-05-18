@@ -7,4 +7,4 @@
 
 Point are scored as described below:
 
-[Points](/img/angle_points.jpg)
+<img src=/img/angle_points.jpg alt="IMAGE ALT TEXT HERE" width="500" border="10" />
