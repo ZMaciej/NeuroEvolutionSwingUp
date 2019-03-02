@@ -1,3 +1,4 @@
+import com.hamoid.*; //library for video recording
 final double g = 9.81;                        //gravity constant [m/s^2]
 final double m0 = 0.530168;                   //cart mass [kg]
 final double m1 = 0.18669;                    //mass of first arm [kg]
@@ -37,8 +38,12 @@ final double max_bias = PI;
 /* control gains */
 double[] K = {10, -259.7565, 309.8422, 8.3819, -0.7261, 27.0203};
 
+VideoExport VideoOut;
+boolean recording=false;
+boolean startRecording = false;
+boolean stopRecording = false;
+
 final int stroke_weight = 5;
-boolean recording = false;
 final int dip_count = 70; //how many pendulums in one generation
 double generation_time = 0;
 final double[] generation_times = {2, 3, 5};
@@ -76,6 +81,8 @@ PFont font;
 void setup()
 {
   size(600, 400); //x width = dip.scale*gantry+100  dip.scale=300
+  VideoOut = new VideoExport(this); //startMovie, saveFrame, endMovie
+  VideoOut.setFrameRate(50);
   fill(255);
   stroke(255);
   strokeWeight(stroke_weight);
@@ -159,18 +166,39 @@ void draw()
   popMatrix();
 
   /*recording control*/
-  if (recording) {
-    saveFrame("capture/DIP####.png");
+  
+  if (startRecording)
+  {
+    String name = String.valueOf(year())+"-"+String.valueOf(month())+"-"+String.valueOf(day())+"-"+String.valueOf(hour())+"-"+String.valueOf(minute())+"-"+String.valueOf(second())+".mp4";
+    VideoOut.setMovieFileName(name);
+    VideoOut.startMovie();
+    recording = true;
+    println("video started");
+    startRecording = false;
+  }
+  if (recording)
+  {
+    VideoOut.saveFrame();
     fill(255, 0, 0);
     stroke(255, 150, 150);
     ellipse(20, 25, 20, 20);
+  }
+  if (stopRecording)
+  {
+    recording = false;
+    VideoOut.endMovie();
+    println("video ended");
+    stopRecording = false;
   }
 }
 
 void keyPressed() {
   if (key == 'r' || key == 'R') // start/stop recording
   {
-    recording = !recording;
+    if (!recording)
+      startRecording = true; 
+    else
+      stopRecording = true;
   }
   if (key == 'p' || key == 'P') // play again actual generation
   {
