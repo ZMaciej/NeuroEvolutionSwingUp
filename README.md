@@ -12,3 +12,5 @@ Point are scored as described below:
 Video presentation:
 
 [![SwingUp](http://img.youtube.com/vi/oSD7uSI1dF4/0.jpg)](http://www.youtube.com/watch?v=oSD7uSI1dF4 "SwingUp")
+
+*inspired by CodingTrain: https://www.youtube.com/watch?v=c6y21FkaUqw*
