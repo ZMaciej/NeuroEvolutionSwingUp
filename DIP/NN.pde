@@ -41,7 +41,7 @@ class neuralnetwork
         temp = 0;
         for (int j = 0; j<input_count; j++)
         {
-          temp += input[j] * weights_ih[i][j];
+          temp += (input[j] + (add_noise?random(-0.001,0.001):0.0)) * weights_ih[i][j];
         }
         hidden[i] = temp + biases_ih[i];
       }

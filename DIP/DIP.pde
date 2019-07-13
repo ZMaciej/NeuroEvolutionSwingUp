@@ -69,6 +69,8 @@ double u=0;
 boolean all_out_of_range;
 boolean force_next_generation = false;
 boolean show_best = false;
+boolean show_info = false;
+boolean add_noise = false;
 
 /* neural network constants */
 final int input_count = 6; //6 states of pendulum
@@ -166,7 +168,7 @@ void draw()
   popMatrix();
 
   /*recording control*/
-  
+
   if (startRecording)
   {
     String name = String.valueOf(year())+"-"+String.valueOf(month())+"-"+String.valueOf(day())+"-"+String.valueOf(hour())+"-"+String.valueOf(minute())+"-"+String.valueOf(second())+".mp4";
@@ -189,6 +191,24 @@ void draw()
     VideoOut.endMovie();
     println("video ended");
     stopRecording = false;
+  }
+
+  /*info*/
+  if (show_info)
+  {
+    textSize(20);
+    textFont(font);
+    fill(255);
+    text(String.format("X - reset program"), 300, 20);
+    text(String.format("B - show, hide best"), 300, 45);
+    text(String.format("P - play again current generation"), 300, 70);
+    text(String.format("N - force next generation"), 300, 95);
+    text(String.format("R - record"), 300, 120);
+    if (add_noise) {
+      text(String.format("S - remove noise"), 300, 145);
+    } else {
+      text(String.format("S - add noise"), 300, 145);
+    }
   }
 }
 
@@ -247,6 +267,14 @@ void keyPressed() {
       }
     }
   }
+  if (key == 'i' || key == 'I') // info
+  {
+    show_info = true;
+  }
+  if (key == 's' || key == 'S') // noise
+  {
+    add_noise = !add_noise;
+  }
 
   /* steering pendulum on arrows, use dip.calc(h,u); in draw function*/
   //if (key == CODED) {
@@ -260,9 +288,12 @@ void keyPressed() {
   //}
 }
 
-//void keyReleased() {
-//  u = 0;
-//}
+void keyReleased() {
+  if (key == 'i' || key == 'I') // info
+  {
+    show_info = false;
+  }
+}
 
 class dip
 {
