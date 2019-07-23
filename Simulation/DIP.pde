@@ -1,4 +1,9 @@
-class dip
+static abstract class dip_counter
+{
+   static int objectCounter = 0; 
+}
+
+class dip extends dip_counter
 {
   final int c_w = 20;      //width of cart
   final int c_h = 10;      //height of cart
@@ -13,9 +18,12 @@ class dip
 
   RK4 solver;
   neuralnetwork brain;
+  PrintWriter logger;
 
   public dip(double x1, double x2, double x3, double x4, double x5, double x6) //passing inivtial conditions to solver
   {
+    logger = createWriter("state" + str(objectCounter) + ".csv");
+    objectCounter++;
     solver = new RK4(x1, x2, x3, x4, x5, x6);
     brain = new neuralnetwork(input_count, hidden_count, output_count, true);
     control_constant = Math.random() * max_force;
@@ -26,6 +34,8 @@ class dip
 
   public dip(double x1, double x2, double x3, double x4, double x5, double x6, double control_constant, neuralnetwork brain) //passing inivtial conditions to solver
   {
+    logger = createWriter("state" + str(objectCounter) + ".csv");
+    objectCounter++;
     solver = new RK4(x1, x2, x3, x4, x5, x6);
     this.brain = brain;
     this.control_constant = control_constant;
