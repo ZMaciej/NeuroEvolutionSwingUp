@@ -40,7 +40,7 @@ final int hidden_count = 10;  //some arbitrary value
 final int output_count = 1; //one control force applied to cart
 
 PFont font;
-
+PrintWriter logger;
 
 void setup()
 {
@@ -76,8 +76,10 @@ void draw()
     /* updating the pendulums */
     for (int j =0; j<dip_count; j++)
     {
-      for (int i = 0; i<k; i++) {    //k - how many iterations by one presentation
+      for (int i = 0; i<k; i++) 
+      {    //k - how many iterations by one presentation
         pendulums[j].calc_neural(h); //solving next position
+        
       }
       pendulums[j].show();
     }
@@ -114,11 +116,22 @@ void draw()
   /* showing best */
   else
   {
-    for (int i = 0; i<k; i++) {    //k - how many iterations by one presentation
+    for (int i = 0; i<k; i++) 
+    {    //k - how many iterations by one presentation
       best.calc_neural(h); //solving next position
+      logger.println(
+      str((float)best.solver.x[0]) + "," + str((float)best.solver.x[1]) + "," + str((float)best.solver.x[2]) + "," +
+      str((float)best.solver.x[3]) + "," + str((float)best.solver.x[4]) + "," + str((float)best.solver.x[5]) + ",");
     }
+
     best.show();
     actual_generation_time += h * k;
+    
+    if(actual_generation_time > 1)
+    {
+      logger.flush();
+      logger.close();
+    }
   }
 
   /* drawing the edges */
@@ -206,6 +219,7 @@ void keyPressed() {
     show_best = !show_best;
     if (show_best)
     {
+      logger = createWriter("state" + str(best.objectCounter) + ".csv");
       actual_generation_time = 0;
       best.reset();
     } else
@@ -237,6 +251,7 @@ void keyPressed() {
   {
     add_noise = !add_noise;
   }
+
 
   /* steering pendulum on arrows, use dip.calc(h,u); in draw function*/
   //if (key == CODED) {
