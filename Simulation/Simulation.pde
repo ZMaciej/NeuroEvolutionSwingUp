@@ -40,7 +40,10 @@ final int hidden_count = 10;  //some arbitrary value
 final int output_count = 1; //one control force applied to cart
 
 PFont font;
-PrintWriter logger;
+
+boolean enable_file_writing = false;
+PrintWriter logger_state;
+PrintWriter logger_weights;
 
 void setup()
 {
@@ -119,19 +122,61 @@ void draw()
     for (int i = 0; i<k; i++) 
     {    //k - how many iterations by one presentation
       best.calc_neural(h); //solving next position
-      logger.println(
-      str((float)best.solver.x[0]) + "," + str((float)best.solver.x[1]) + "," + str((float)best.solver.x[2]) + "," +
-      str((float)best.solver.x[3]) + "," + str((float)best.solver.x[4]) + "," + str((float)best.solver.x[5]) + ",");
+      if(enable_file_writing)
+      {
+        logger_state.println(
+        str((float)best.solver.x[0]) + "," + str((float)best.solver.x[1]) + "," + str((float)best.solver.x[2]) + "," +
+        str((float)best.solver.x[3]) + "," + str((float)best.solver.x[4]) + "," + str((float)best.solver.x[5]) + ",");
+      }
     }
 
     best.show();
     actual_generation_time += h * k;
     
-    if(actual_generation_time > 1)
+    if((actual_generation_time > 1) && enable_file_writing)
     {
-      logger.flush();
-      logger.close();
+      logger_state.flush();
+      logger_state.close();
+      
+      for(int i = 0; i < best.brain.weights_ih.length; i++)
+      {
+        for(int j = 0; j < best.brain.weights_ih[0].length; j++)
+        {
+          logger_weights.print(best.brain.weights_ih[i][j] + ",");
+        }
+        logger_weights.println();
+      }
+      
+      logger_weights.println();
+      
+      for(int i = 0; i < best.brain.weights_ho.length; i++)
+      {
+        for(int j = 0; j < best.brain.weights_ho[0].length; j++)
+        {
+          logger_weights.print(best.brain.weights_ho[i][j] + ",");
+        }
+        logger_weights.println();
+      }
+      
+      logger_weights.println();
+      
+      for(int i = 0; i < best.brain.biases_ih.length; i++)
+      {
+        logger_weights.print(best.brain.biases_ih[i] + ",");
+      }
+      
+      logger_weights.println();
+      
+      for(int i = 0; i < best.brain.biases_ho.length; i++)
+      {
+        logger_weights.print(best.brain.biases_ho[i] + ",");
+      }
+      
+      logger_weights.flush();
+      logger_weights.close();
+      enable_file_writing = false;
     }
+    
   }
 
   /* drawing the edges */
@@ -219,7 +264,6 @@ void keyPressed() {
     show_best = !show_best;
     if (show_best)
     {
-      logger = createWriter("state" + str(best.objectCounter) + ".csv");
       actual_generation_time = 0;
       best.reset();
     } else
@@ -230,6 +274,12 @@ void keyPressed() {
         pendulums[i].reset();
       }
     }
+  }
+  if ((key == 'z' || key == 'Z') && show_best)
+  {
+    enable_file_writing = true;
+    logger_state = createWriter(str(best.objectCounter) + "state" + ".csv");
+    logger_weights = createWriter(str(best.objectCounter) + "weights" + ".csv");
   }
   if (key == 'x' || key == 'X') // reset everything
   {
