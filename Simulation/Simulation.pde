@@ -41,7 +41,6 @@ final int output_count = 1; //one control force applied to cart
 
 PFont font;
 
-boolean enable_file_writing = false;
 PrintWriter logger_state;
 PrintWriter logger_weights;
 
@@ -122,18 +121,15 @@ void draw()
     for (int i = 0; i<k; i++) 
     {    //k - how many iterations by one presentation
       best.calc_neural(h); //solving next position
-      if(enable_file_writing)
-      {
-        logger_state.println(
-        str((float)best.solver.x[0]) + "," + str((float)best.solver.x[1]) + "," + str((float)best.solver.x[2]) + "," +
-        str((float)best.solver.x[3]) + "," + str((float)best.solver.x[4]) + "," + str((float)best.solver.x[5]) + ",");
-      }
+      logger_state.println(
+      str((float)best.solver.x[0]) + "," + str((float)best.solver.x[1]) + "," + str((float)best.solver.x[2]) + "," +
+      str((float)best.solver.x[3]) + "," + str((float)best.solver.x[4]) + "," + str((float)best.solver.x[5]) + ",");
     }
 
     best.show();
     actual_generation_time += h * k;
     
-    if((actual_generation_time > 1) && enable_file_writing)
+    if(actual_generation_time > 1)
     {
       logger_state.flush();
       logger_state.close();
@@ -174,7 +170,6 @@ void draw()
       
       logger_weights.flush();
       logger_weights.close();
-      enable_file_writing = false;
     }
     
   }
@@ -264,6 +259,8 @@ void keyPressed() {
     show_best = !show_best;
     if (show_best)
     {
+      logger_state = createWriter(str(best.objectCounter) + "state" + ".csv");
+      logger_weights = createWriter(str(best.objectCounter) + "weights" + ".csv");
       actual_generation_time = 0;
       best.reset();
     } else
@@ -274,12 +271,6 @@ void keyPressed() {
         pendulums[i].reset();
       }
     }
-  }
-  if ((key == 'z' || key == 'Z') && show_best)
-  {
-    enable_file_writing = true;
-    logger_state = createWriter(str(best.objectCounter) + "state" + ".csv");
-    logger_weights = createWriter(str(best.objectCounter) + "weights" + ".csv");
   }
   if (key == 'x' || key == 'X') // reset everything
   {
