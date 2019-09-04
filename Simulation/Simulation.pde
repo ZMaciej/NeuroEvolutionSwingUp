@@ -134,6 +134,7 @@ void draw()
       logger_state.flush();
       logger_state.close();
       
+      logger_weights.print("weights{1} = [");
       for(int i = 0; i < best.brain.weights_ih.length; i++)
       {
         for(int j = 0; j < best.brain.weights_ih[0].length; j++)
@@ -142,9 +143,11 @@ void draw()
         }
         logger_weights.println();
       }
+      logger_weights.println("];");
       
       logger_weights.println();
       
+      logger_weights.print("weights{2} = [");
       for(int i = 0; i < best.brain.weights_ho.length; i++)
       {
         for(int j = 0; j < best.brain.weights_ho[0].length; j++)
@@ -153,20 +156,25 @@ void draw()
         }
         logger_weights.println();
       }
+      logger_weights.println("];");
       
       logger_weights.println();
       
+      logger_weights.println("biases{1} = [");
       for(int i = 0; i < best.brain.biases_ih.length; i++)
       {
         logger_weights.print(best.brain.biases_ih[i] + ",");
       }
+      logger_weights.println("];");
       
       logger_weights.println();
       
+      logger_weights.println("biases{2} = [");
       for(int i = 0; i < best.brain.biases_ho.length; i++)
       {
         logger_weights.print(best.brain.biases_ho[i] + ",");
       }
+      logger_weights.println("];");
       
       logger_weights.flush();
       logger_weights.close();
@@ -259,8 +267,8 @@ void keyPressed() {
     show_best = !show_best;
     if (show_best)
     {
-      logger_state = createWriter(str(best.objectCounter) + "state" + ".csv");
-      logger_weights = createWriter(str(best.objectCounter) + "weights" + ".csv");
+      logger_state = createWriter("state" +  str(best.objectCounter) + ".csv");
+      logger_weights = createWriter("weights" + str(best.objectCounter) + ".m");
       actual_generation_time = 0;
       best.reset();
     } else
