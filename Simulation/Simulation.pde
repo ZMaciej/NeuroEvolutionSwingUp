@@ -176,6 +176,10 @@ void draw()
       }
       logger_weights.println("];");
       
+      logger_weights.println();
+      logger_weights.println("control_constant = " + str((float)best.control_constant) + ";");
+      
+      
       logger_weights.flush();
       logger_weights.close();
     }
