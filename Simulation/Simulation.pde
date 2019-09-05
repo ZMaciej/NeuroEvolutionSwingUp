@@ -6,7 +6,7 @@ boolean startRecording = false;
 boolean stopRecording = false;
 
 final int stroke_weight = 5;
-final int dip_count = 70; //how many pendulums in one generation
+final int dip_count = 100; //how many pendulums in one generation
 double generation_time = 0;
 final double[] generation_times = {2, 3, 5};
 final int[] generation_times_change = {15, 30};
@@ -80,10 +80,16 @@ void draw()
     {
       for (int i = 0; i<k; i++) 
       {    //k - how many iterations by one presentation
-        pendulums[j].calc_neural(h); //solving next position
+        if(!pendulums[j].out_of_range)
+        {
+          pendulums[j].calc_neural(h); //solving next position
+        }
         
       }
-      pendulums[j].show();
+      if(!pendulums[j].out_of_range)
+      {
+        pendulums[j].show();
+      }
     }
     actual_generation_time += h * k;
 
