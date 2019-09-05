@@ -98,7 +98,7 @@ class RK4
     /* modifying the angle range to -PI to PI */
     for (int i = 1; i<3; i++)
     {
-      x[i] = ((x[i]+PI) % TWO_PI) - PI;
+      x[i] = ((x[i]+ 3 * PI) % TWO_PI) - PI;
     }
   }
 }
