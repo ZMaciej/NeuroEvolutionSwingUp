@@ -6,7 +6,7 @@ boolean startRecording = false;
 boolean stopRecording = false;
 
 final int stroke_weight = 5;
-final int dip_count = 100; //how many pendulums in one generation
+final int dip_count = 150; //how many pendulums in one generation
 double generation_time = 0;
 final double[] generation_times = {2, 3, 5};
 final int[] generation_times_change = {15, 30};
@@ -129,7 +129,7 @@ void draw()
       best.calc_neural(h); //solving next position
       logger_state.println(
       str((float)best.solver.x[0]) + "," + str((float)best.solver.x[1]) + "," + str((float)best.solver.x[2]) + "," +
-      str((float)best.solver.x[3]) + "," + str((float)best.solver.x[4]) + "," + str((float)best.solver.x[5]) + ",");
+      str((float)best.solver.x[3]) + "," + str((float)best.solver.x[4]) + "," + str((float)best.solver.x[5]) + "," + str((float)best.brain.output[0]));
     }
 
     best.show();
